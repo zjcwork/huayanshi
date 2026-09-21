@@ -1,5 +1,6 @@
 export type Phase = '待审核' | '订单退回' | '待分配' | '已分配' | '进行中' | '待确认' | '已完成';
-export type Team = '甲班' | '乙班' | '丙班';
+export const workbenchTeams = ['甲班','乙班','丙班','长白班'] as const;
+export type Team = typeof workbenchTeams[number];
 export type Cloth = '无需带布' | '待带布' | '带布中' | '已完成';
 export type Recipe = {code:string;name:string;ratio:number;unit:string};
 export type WorkItem = {id:string;processCard?:string;additionCount?:number;order:string;kind:'大货'|'预打样'|'回修'|'复样';product:string;color:string;colorNo:string;swatch:string;depth:string;team:Team;phase:Phase;worker:string|null;due:string;created:string;urgent:boolean;returns:number;lastReason:string;cloth:Cloth;clothDue:string;clothOwner:string;formula:Recipe[];version:number;logs:{time:string;event:string;note:string}[]};

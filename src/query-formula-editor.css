@@ -1,0 +1,5 @@
+.query-formula-editor .query-reduction{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin:12px 0}
+.query-formula-editor .ant-table .ant-input-number,.query-formula-editor .ant-table .ant-select{width:100%}
+.query-formula-editor .ant-table .ant-btn-link{padding:0}
+.query-formula-editor .ant-table-cell{text-align:center}
+.query-formula-editor .ant-descriptions-item-label{white-space:nowrap}

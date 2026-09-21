@@ -1,0 +1,51 @@
+import {displayProcessCard} from './formula-number';
+import BadFormulaComparison from './BadFormulaComparison';
+import {ReloadOutlined} from '@ant-design/icons';
+import {dyeReviewCards} from './dye-review-cards';
+import './bad-formulas.css';
+import './card-opening-review.css';
+import './warehouse-confirmation.css';
+import './formula-change-review.css';
+import {readWarehouseRecords} from './warehouse-demo';
+import {useState,useEffect} from 'react';
+import {App,Button,Input,InputNumber,Empty,Select,Space,Table,Tag,Tabs} from 'antd';
+import {matchingFormulaNumber,matchingFormula,readRecords,writeRecord,type MatchingRecord,type DetailRow} from './matching-model';
+import {adjustWarehouse,completed,formulaSnapshot,warehouseConfirmed,warehouseKey,type WarehouseLog} from './warehouse-model';
+const displayCard=displayProcessCard;
+const isOkWarehouse=(record:MatchingRecord)=>completed(record)&&record.additions.length===0;
+const warehouseSwatch=(record:MatchingRecord,id:string)=>{const color=dyeReviewCards.find(item=>item.card===id||item.order===record.order)?.color??record.colorNo??'';return ({'藏青':'#24316f','薄荷绿':'#98bf92','中灰':'#808080','浅蓝':'#a9cde5','暮蓝':'#263b69','hong':'#ca567d'} as Record<string,string>)[color]??'#c7cdd4'};
+const readLog=():WarehouseLog=>JSON.parse(localStorage.getItem(warehouseKey)||'{}');
+export default function WarehouseConfirmation(){
+ const {message}=App.useApp();const [records,setRecords]=useState(readWarehouseRecords),[log,setLog]=useState(readLog),[query,setQuery]=useState(''),[search,setSearch]=useState('');
+ const [card,setCard]=useState<string|null>(null),[baseline,setBaseline]=useState(''),[editing,setEditing]=useState(false),[rows,setRows]=useState<DetailRow[]>([]),[bath,setBath]=useState<number|null>(9),[operator]=useState('水木'),[reason,setReason]=useState('');
+ const [warehouseTab,setWarehouseTab]=useState('ok');
+ useEffect(()=>{setRecords(readWarehouseRecords());setLog(readLog())},[readWarehouseRecords]);
+ const current=card?records[card]:undefined;
+ const cardInfo=dyeReviewCards.find(r=>r.card===card)||(current?.demo?dyeReviewCards.find(r=>r.order===current.order):undefined);
+ const refresh=()=>{setRecords(readWarehouseRecords());setLog(readLog())};
+ const show=(id:string,r:MatchingRecord)=>{setCard(id);setBaseline(formulaSnapshot(r));setRows(structuredClone(r.formula??matchingFormula));setBath(r.bathRatio??(r.demo?8:9));setEditing(false);setReason('')};
+ const save=(action:'调整'|'确认')=>{if(!card)return;try{const fresh=readRecords()[card],history=readLog();if(!fresh||!completed(fresh)||formulaSnapshot(fresh)!==baseline)throw new Error('配方已变化，请关闭详情并刷新后重试');if(warehouseConfirmed(fresh,history[card]))throw new Error('该配方已进仓确认');if(!operator.trim())throw new Error('请填写操作人');const next=action==='调整'?adjustWarehouse(fresh,bath,rows,operator,reason):fresh;const nextLog={...history,[card]:[...history[card]??[],{action,operator:operator.trim(),reason:reason.trim(),time:new Date().toISOString(),snapshot:formulaSnapshot(next),before:formulaSnapshot(fresh),formulaNo:matchingFormulaNumber(card,next),beforeFormulaNo:matchingFormulaNumber(card,fresh)}]};localStorage.setItem(warehouseKey,JSON.stringify(nextLog));if(action==='调整')writeRecord(card,next);refresh();if(action==='确认')setCard(null);else{setBaseline(formulaSnapshot(next));setEditing(false);setReason('')};message.success(action==='确认'?'已完成进仓确认':'调整已保存，请核对后确认进仓')}catch(e){message.error((e as Error).message)}};
+ const handleDisposition=(action:'重新打样'|'配方不可用')=>{if(!card)return;try{
+  const fresh=readRecords()[card],history=readLog();
+  if(!fresh||(!completed(fresh)&&fresh.result!=='未通过')||formulaSnapshot(fresh)!==baseline||warehouseConfirmed(fresh,history[card]))throw new Error('配方状态已变化，请刷新后重试');
+  const time=new Date().toISOString();
+  const next:MatchingRecord=action==='重新打样'?{...fresh,result:'待对样',decisions:[...fresh.decisions??[],{kind:'重新打样',reason:'进仓确认重新打样',operator,time,additionCount:fresh.additions.length,before:structuredClone(fresh.formula??matchingFormula)}]}:{...fresh,result:'未通过',reason:'进仓确认：配方不可用'};
+  writeRecord(card,next);localStorage.setItem(warehouseKey,JSON.stringify({...history,[card]:[...history[card]??[],{action,operator,time,reason:action,snapshot:formulaSnapshot(next),before:formulaSnapshot(fresh),formulaNo:matchingFormulaNumber(card,next)}]}));refresh();setCard(null);message.success(action==='重新打样'?'已安排重新打样':'已标记配方不可用');
+ }catch(error){message.error((error as Error).message)}};
+ const patch=(key:string,changes:Partial<DetailRow>)=>setRows(previous=>previous.map(r=>r.key===key?{...r,...changes}:r));
+ const pendingItems=Object.entries(records).filter(([id,r])=>(completed(r)||r.result==='未通过')&&log[id]?.at(-1)?.action!=='配方不可用').map(([id,r])=>({id,...r,confirmed:warehouseConfirmed(r,log[id])})).filter(r=>!r.confirmed&&[matchingFormulaNumber(r.id,r),displayCard(r.id),r.id,r.order,r.colorNo].join(' ').toLowerCase().includes(search.toLowerCase()));
+ const items=pendingItems.filter(record=>warehouseTab==='ok'?isOkWarehouse(record):!isOkWarehouse(record));
+ useEffect(()=>{if(!items.some(item=>item.id===card)){const first=items[0];if(first)show(first.id,first);else setCard(null)}},[card,records,log,search,warehouseTab]);
+ return <div className="opening-review warehouse-review"><aside className="opening-plans"><div className="opening-list-heading"><b>进仓确认</b><Tag color="blue">{items.length}</Tag><Button aria-label="刷新进仓记录" icon={<ReloadOutlined/>} onClick={refresh}/></div><Tabs className="warehouse-category-tabs" activeKey={warehouseTab} onChange={setWarehouseTab} items={[{key:'ok',label:`头缸 (${pendingItems.filter(isOkWarehouse).length})`},{key:'not-ok',label:`连缸变更 (${pendingItems.filter(record=>!isOkWarehouse(record)).length})`}]}/><Input.Search placeholder="流程卡 / 配方号 / 订字 / 色号" allowClear value={query} onChange={e=>{setQuery(e.target.value);setSearch(e.target.value.trim())}} onSearch={value=>setSearch(value.trim())}/><div className="opening-plan-list">{items.map(record=><button key={record.id} className={'opening-plan '+(record.id===card?'active':'')} onClick={()=>show(record.id,record)}><div><b><i aria-label={`${record.colorNo||'未知'}色块`} style={{background:warehouseSwatch(record,record.id)}}/>{record.order||'—'} · {record.colorNo||'—'}</b></div><p className="opening-plan-number">{displayCard(record.id)}</p></button>)}{!items.length&&<Empty description="暂无符合条件的配方"/>}</div></aside><div className="opening-workspace">
+ {current?<><section className="opening-summary"><dl className="warehouse-order-summary">
+ <div><dt>基础信息：</dt><dd>{displayCard(card!)} | {current.order||'—'} | {cardInfo?.product||'—'}</dd></div>
+ <div><dt>颜色信息：</dt><dd>{current.colorNo||'—'} | {cardInfo?.color||'—'} | {cardInfo?.depth||'—'}</dd></div>
+ <div><dt>白坯信息：</dt><dd>门幅166cm | 克重355g</dd></div>
+ <div><dt>不良信息：</dt><dd>— | — | —</dd></div>
+ <div><dt>米数信息：</dt><dd>预配1匹 | 实配{cardInfo?.pieces??14}匹 | 实配{cardInfo?.meters??1680}米</dd></div>
+ <div><dt>成品要求：</dt><dd>门幅146全幅 | 克重290克/平方米</dd></div>
+ <div className="warehouse-order-requirements"><dt>加工要求：</dt><dd>打长卷 | 成品手感：滑爽 | 成品光暗：一般 | 布面起皱风格：否 | 布面光洁：否 | 高牢度：否 | 预缩要求：否</dd></div>
+ <div><dt>开卡信息：</dt><dd>{current.demo?'SuperAdmin | 2026-09-17 13:06:51':'—'}</dd></div>
+ </dl></section><div className="opening-formula-workspace"><section className="opening-formula-detail"><div className="bad-formula-title"><h4>配方详情</h4><span style={{color:'#385477'}}>配方号：{matchingFormulaNumber(card!,current)}</span>{!editing&&!warehouseConfirmed(current,log[card!])&&<Button style={{marginLeft:'auto'}} disabled={!completed(current)} title={!completed(current)?'对样通过后可编辑配方':undefined} onClick={()=>setEditing(true)}>编辑</Button>}</div>{editing&&<div style={{marginBottom:12}}><Button onClick={()=>setRows([...rows,{key:crypto.randomUUID(),stage:1,code:'',ratio:null,algorithm:'布重',unit:'克/市斤'}])}>新增染助剂</Button></div>}<>{!editing?<BadFormulaComparison bath={bath} formula={current.demo?rows.map(r=>({...r,process:r.process==='02'?"130°C*10′":r.process==='67'?"60°C*50′ / 75°C*10′":r.process||undefined,ph:r.ph||undefined})):rows} batches={current.additions}/>:<Table rowKey="key" size="small" bordered pagination={false} scroll={{x:750,y:300}} dataSource={rows} columns={[{title:'浴比',width:110,render:()=> <Space size={4}>1:<InputNumber aria-label="浴比" min={0.01} value={bath} onChange={setBath} style={{width:72}}/></Space>,onCell:(_,index)=>({rowSpan:index===0?rows.length:0})},{title:'阶段',width:80,render:(_,r)=>editing?<InputNumber min={1} precision={0} style={{width:60}} value={r.stage} onChange={value=>patch(r.key,{stage:value??0})}/>:r.stage},{title:'染助剂代码',width:130,render:(_,r)=>editing?<Input value={r.code} onChange={e=>patch(r.key,{code:e.target.value})}/>:r.code},{title:'比例',width:130,render:(_,r)=>editing?<InputNumber min={0} value={r.ratio} onChange={value=>patch(r.key,{ratio:value})}/>:r.ratio},{title:'算法',width:110,render:(_,r)=>editing?<Select value={r.algorithm} options={['布重','水量'].map(value=>({value,label:value}))} onChange={value=>patch(r.key,{algorithm:value,unit:value==='布重'?'克/市斤':'克/升'})}/>:r.algorithm},{title:'单位',dataIndex:'unit'},{title:'工艺',dataIndex:'process',render:v=>v||'—'},{title:'pH',dataIndex:'ph',render:v=>v||'—'},...(editing?[{title:'操作',render:(_:unknown,r:DetailRow)=><Button danger type="link" onClick={()=>setRows(rows.filter(x=>x.key!==r.key))}>删除</Button>}]:[])]}/>}</>{editing&&<Input.TextArea style={{marginTop:16}} placeholder="调整原因（必填）" value={reason} onChange={e=>setReason(e.target.value)}/>}<div className="opening-actions"><span>{warehouseConfirmed(current,log[card!])?'已完成进仓确认':'核对后确认配方'}</span><Space>{!warehouseConfirmed(current,log[card!])&&(editing?<><Button onClick={()=>{setRows(structuredClone(current.formula??matchingFormula));setBath(current.bathRatio??(current.demo?8:9));setEditing(false);setReason('')}}>取消调整</Button><Button type="primary" onClick={()=>save('调整')}>保存调整</Button></>:<><Button onClick={()=>handleDisposition('重新打样')}>配方重打</Button><Button danger onClick={()=>handleDisposition('配方不可用')}>配方不可用</Button><Button type="primary" disabled={!completed(current)} title={!completed(current)?'对样通过后可确认配方':undefined} onClick={()=>save('确认')}>确认配方</Button></>)}</Space></div></section></div></>:<div className="opening-empty"><Empty description="暂无符合条件的配方，对样通过后自动进入此处"/></div>}
+ </div></div>;
+}

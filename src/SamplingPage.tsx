@@ -1,0 +1,52 @@
+import FormulaRetryTasks from './FormulaRetryTasks';
+import {loadFormulaState} from './dye-formula-model';
+import {useEffect,useState} from 'react';
+import {App,Button,Checkbox,Descriptions,Empty,Input,InputNumber,Modal,Select,Space,Table,Tabs} from 'antd';
+import {ArrowDownOutlined,ArrowUpOutlined,DownOutlined} from '@ant-design/icons';
+import BadFormulas from './BadFormulas';
+import {defectStatus,readRecords} from './matching-model';
+import './sampling-page.css';
+type Row={key:string;stage:number;code:string;ratio:number|null};
+type Ticket={id:string;order:string;color:string;hex:string;worker:string;date:string};
+const base:Ticket[]=[
+ {id:'bulk-1',order:'阿建91079',color:'1',hex:'#c95472',worker:'俞狄锋',date:'26-08-23'},
+ {id:'bulk-2',order:'顶发666',color:'hong',hex:'#a6cc67',worker:'戚兴锋',date:'26-08-25'},
+ {id:'bulk-3',order:'顶发666',color:'lv',hex:'#c95472',worker:'戚兴锋',date:'26-08-25'},
+ {id:'bulk-4',order:'芹王AE',color:'壁土灰',hex:'#967621',worker:'沈锋',date:'26-08-28'},
+ {id:'bulk-5',order:'国张711',color:'测试826',hex:'#bea44e',worker:'smcs',date:'26-08-30'},
+ {id:'bulk-6',order:'芹王TEST',color:'酒红',hex:'#a0a2a0',worker:'IE通用',date:'26-09-01'}
+];
+const blank=():Row=>({key:crypto.randomUUID(),stage:1,code:'',ratio:null});
+const readSaved=():Record<string,Row[]>=>{try{return JSON.parse(localStorage.getItem('lab-sampling-drafts')||'{}')}catch{return {}}};
+export default function SamplingPage({onMatching,onQuery}:{onMatching:(card:string)=>void;onQuery:()=>void}){
+ const [,refreshTasks]=useState(0);
+ const retryCount=loadFormulaState().changes.filter(c=>c.status==='待工段长审核'&&c.retry&&!c.retry.completedAt).length;
+ const {message}=App.useApp();const [category,setCategory]=useState('bulk'),[query,setQuery]=useState(''),[applied,setApplied]=useState(''),[active,setActive]=useState('bulk-1'),[checked,setChecked]=useState<string[]>([]),[rounds,setRounds]=useState<number[]>([]),[expanded,setExpanded]=useState(true),[logOpen,setLogOpen]=useState(false);
+ const [drafts,setDrafts]=useState<Record<string,Row[]>>(()=>{const saved=readSaved();try{const old=JSON.parse(localStorage.getItem('lab-sample')||'null');if(old&&!saved['bulk-5'])saved['bulk-5']=old.map((r:Row)=>({...r,key:String(r.key)}));}catch{/* Keep current drafts. */}return saved;}),[emptyRows]=useState(()=>[blank()]);
+ const [drops,setDrops]=useState<{id:string;order:string;time:string}[]>(()=>{try{return JSON.parse(localStorage.getItem('lab-sampling-drops')||'[]')}catch{return []}});
+ const tickets=category==='bulk'?base:category==='repair'?base.map((r,i)=>({...r,id:`repair-${i}`,date:'26-09-03'})):Array.from({length:42},(_,i)=>({...base[i%6],id:`pre-${i}`,color:i<6?base[i%6].color:`预打样${i+1}`,date:'26-09-05'}));
+ const ticket=tickets.find(r=>r.id===active)??tickets[0];const rows=drafts[ticket.id]??emptyRows;
+ const update=(next:Row[])=>setDrafts(d=>({...d,[ticket.id]:next}));
+ const patch=(key:string,p:Partial<Row>)=>update(rows.map(r=>r.key===key?{...r,...p}:r));
+ const bring=()=>{update(['A1','A12','P103','P2'].map((code,i)=>({key:crypto.randomUUID(),stage:1,code,ratio:[1,1,1,1.1][i]})));message.success('已带入配方');};
+ useEffect(()=>{const handler=(e:KeyboardEvent)=>{if(e.key==='F8'&&category!=='resample'){e.preventDefault();bring();}};window.addEventListener('keydown',handler);return()=>window.removeEventListener('keydown',handler);});
+ let count=0;try{count=Object.values(readRecords()).filter(r=>defectStatus(r)==='待重新打样').length}catch{/* No tasks available. */}
+ const filtered=tickets.filter(t=>(t.order+' '+t.color+' '+t.id).includes(applied.trim()));
+ const save=()=>{if(!rows.length||rows.some(r=>!r.code||r.ratio===null||r.ratio<0)||!rows.some(r=>(r.ratio??0)>0)){message.warning('请填写染助剂及有效比例');return;}try{localStorage.setItem('lab-sampling-drafts',JSON.stringify({...readSaved(),[ticket.id]:rows}));message.success('配方已保存')}catch{message.error('保存失败，请重试')}};
+ const move=(key:string,offset:number)=>{const index=rows.findIndex(r=>r.key===key),target=index+offset;if(target<0||target>=rows.length)return;const next=[...rows];[next[index],next[target]]=[next[target],next[index]];update(next);};
+ return <div className="sampling-page"><section className="sampling-sidebar"><Space.Compact className="sampling-search"><Input placeholder="请输入订字/色号/流程卡" value={query} onChange={e=>setQuery(e.target.value)} onPressEnter={()=>setApplied(query)}/><Button type="primary" onClick={()=>setApplied(query)}>查询</Button><Button onClick={()=>{setQuery('');setApplied('')}}>重置</Button></Space.Compact><Tabs activeKey={category} onChange={key=>{setCategory(key);setRounds([]);setChecked([]);setActive(key==='bulk'?'bulk-1':key==='repair'?'repair-0':'pre-0')}} items={[{key:'bulk',label:'大货(6)'},{key:'repair',label:'回修(6)'},{key:'resample',label:`复样(${count+retryCount})`},{key:'pre',label:'预打样(42)'}]}/><div className="sampling-tickets">{category==='resample'?<p className="muted">在右侧选择复样任务，录入打样结果。</p>:filtered.length?filtered.map((t,i)=><div key={t.id} className={`sampling-ticket${ticket.id===t.id?' active':''}`} onClick={()=>{setActive(t.id);setRounds([])}}><div><i style={{background:t.hex}}/>{t.order} | {t.color}<Checkbox aria-label={`选择任务${t.order}${t.color}`} checked={checked.includes(t.id)} onClick={e=>e.stopPropagation()} onChange={e=>setChecked(v=>e.target.checked?[...v,t.id]:v.filter(id=>id!==t.id))}/></div><div>{i+1}　{t.date}<span>{t.worker}</span></div></div>):<Empty image={Empty.PRESENTED_IMAGE_SIMPLE}/>}</div><div className="sampling-sidebar-footer"><Button type="primary" disabled={category==='resample'} onClick={()=>setChecked(checked.length===filtered.length?[]:filtered.map(t=>t.id))}>全选</Button><Button disabled={!checked.length} onClick={()=>{message.success(`已完成 ${checked.length} 项任务交接班`);setChecked([])}}>交接班</Button></div></section>
+ <section className="sampling-main">{category==='resample'?<><FormulaRetryTasks onUpdate={()=>refreshTasks(n=>n+1)}/><BadFormulas tasks onMatching={onMatching}/></>:<><div className="sampling-fabric-info"><div className="sampling-fabric"><span className="sampling-warp"><i/>经向：A</span><div className="sampling-weave"/><span className="sampling-weft"><i/>纬向：C</span></div><div className="sampling-metadata"><Descriptions size="small" bordered column={6} items={[{key:'product',label:'品名',children:'T/R四面弹'},{key:'weight',label:'克重',children:'256',span:2},{key:'colorNo',label:'色号',children:ticket.color},{key:'color',label:'颜色',children:'浅色 | 浅红'},{key:'light',label:'对色光源',children:'-'},...(expanded?[{key:'reference',label:'参考订字色号',children:'-'},{key:'warp',label:'经向成分',children:'A',span:2},{key:'weft',label:'纬向成分',children:'C'},{key:'proportion',label:'比例',children:'A: 10%、C: 90%',span:2},{key:'bath',label:'订单浴比',children:'1:7'},{key:'date',label:'下单日期',children:'2026-08-19 09:30',span:2},{key:'requirements',label:'加工要求',children:'无要求',span:3}]:[])]}/><Button type="text" aria-label="展开或收起布料信息" icon={<DownOutlined rotate={expanded?0:180}/>} onClick={()=>setExpanded(!expanded)}/></div></div>
+ <div className="sampling-actions"><Space><strong>打样信息</strong><Button type="primary" onClick={()=>{try{const next=[{id:crypto.randomUUID(),order:ticket.order,time:new Date().toLocaleString()},...drops];localStorage.setItem('lab-sampling-drops',JSON.stringify(next));setDrops(next);message.success('滴液任务已记录');}catch{message.error('记录失败')}}}>滴液</Button></Space><Space wrap><Button disabled={!rounds.length} onClick={()=>message.success(`第${rounds.join('、')}枪配方已提交审核`)}>配方提审</Button><Button type="primary" onClick={onQuery}>打样查询</Button><Button type="primary" onClick={()=>setLogOpen(true)}>滴液查询</Button><Button type="primary" onClick={bring}>带入(F8)</Button><Button danger onClick={()=>update([])}>清空</Button><Button type="primary" onClick={save}>保存</Button></Space></div>
+ <div className="sampling-tables"><Table className="sampling-round-table" bordered size="small" pagination={false} dataSource={['A1','A12','P103','P2','工艺/pH'].map((code,i)=>({key:i,code}))} columns={[
+ {title:<div className="sampling-stage-heading"><Checkbox aria-label="选择全部枪次" checked={rounds.length===2} indeterminate={rounds.length===1} onChange={e=>setRounds(e.target.checked?[2,1]:[])}/><span>阶段</span></div>,width:'25%',onCell:(_,i)=>({rowSpan:i===0?4:i===4?1:0,colSpan:i===4?2:1}),render:(_,r)=>r.key===4?'工艺/pH':1},
+ {title:'染助剂',width:'25%',dataIndex:'code',onCell:(_,i)=>({colSpan:i===4?0:1})},
+ ...[2,1].map(n=>({title:<div className="sampling-round-heading">第{n}枪 <Checkbox aria-label={`选择第${n}枪`} checked={rounds.includes(n)} onChange={e=>setRounds(v=>e.target.checked?[...v,n]:v.filter(x=>x!==n))}/><div>09-03 15:09</div></div>,children:[{title:'打样比例',render:(_:unknown,r:{key:number})=>r.key===4?'--':n===1?r.key===1?'1':'--':r.key===1?<span>-- <b className="red">-1</b></span>:<span>{r.key===3?'1.1':'1'} <b className="green">+{r.key===3?'1.1':'1'}</b></span>}]}))
+ ]}/><Table className="sampling-edit-table" bordered size="small" rowKey="key" pagination={false} dataSource={rows} locale={{emptyText:<Button onClick={()=>update([blank()])}>新增染助剂</Button>}} columns={[
+ {title:'',width:60,render:(_,r)=><Space size={2}><Button type="text" aria-label="上移染助剂" disabled={rows[0].key===r.key} icon={<ArrowUpOutlined/>} onClick={()=>move(r.key,-1)}/><Button type="text" aria-label="下移染助剂" disabled={rows.at(-1)?.key===r.key} icon={<ArrowDownOutlined/>} onClick={()=>move(r.key,1)}/></Space>},
+ {title:'操作',width:80,render:(_,r)=><Space><Button type="link" onClick={()=>{const next=[...rows];next.splice(next.findIndex(x=>x.key===r.key)+1,0,blank());update(next)}}>新增</Button><Button type="link" danger onClick={()=>update(rows.filter(x=>x.key!==r.key))}>删除</Button></Space>},
+ {title:'阶段',width:65,render:(_,r)=><InputNumber aria-label={`${r.key}阶段`} min={1} precision={0} value={r.stage} onChange={stage=>patch(r.key,{stage:stage??1})}/>},{title:'类别',width:65,render:()=> '染料'},
+ {title:'染助剂',width:140,render:(_,r)=><Select aria-label={`${r.key}染助剂`} showSearch value={r.code||undefined} options={['A1','A12','A14','P103','P2'].map(value=>({value,label:value}))} onChange={code=>patch(r.key,{code})}/>},
+ {title:'比例',width:95,render:(_,r)=><InputNumber aria-label={`${r.key}比例`} min={0} value={r.ratio} onChange={ratio=>patch(r.key,{ratio})}/>}
+ ]}/></div></>}
+ </section><Modal title="滴液查询" open={logOpen} onCancel={()=>setLogOpen(false)} footer={null}><Table rowKey="id" dataSource={drops} columns={[{title:'订字',dataIndex:'order'},{title:'时间',dataIndex:'time'}]}/></Modal></div>;
+}
