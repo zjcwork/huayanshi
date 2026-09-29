@@ -8,6 +8,7 @@ import './dye-schedule.css';
 import './formula-change-review.css';
 import CapacityDialog,{type Item} from './CapacityDialog';
 import SchedulingDrawer from './SchedulingDrawer';
+import CardOpeningReview from './CardOpeningReview';
 import {type Allocation} from './SchedulePopover';
 import {readScheduleJobs as read,vats,type Job} from './schedule-model';
 const dates=['2026-09-10','2026-09-11','2026-09-12'];
@@ -30,7 +31,7 @@ export default function DyeSchedule(){
    {visibleVats.map(v=><div className="schedule-grid-row" key={v}><button className="schedule-vat" onClick={()=>{setVat(v);setFilter({...filter,vat:v})}}>{v}</button>{Array.from({length:8},(_,slot)=>{const job=visible.find(j=>j.vat===v&&j.slot===slot);return <div className={'schedule-slot '+(slot===1||slot===4?'day-end':'')} key={slot}>{job&&<div role="button" tabIndex={0} aria-label={`查看流程卡 ${job.card} ${v}`} onKeyDown={e=>{if(e.key==='Enter')setDetail(job)}} onClick={()=>setDetail(job)} className={`schedule-job ${job.state}${job.urgent?' urgent':''}${selected.includes(job.id)?' checked':''}${selected.length&&!selected.includes(job.id)?' print-hide':''}`}><div className="schedule-swatch"><i style={{background:job.hex}}/>{job.depth}</div><div className="schedule-job-text"><b>{job.card}</b> | {job.order} | {job.color}<div>{job.state==='running'?`开始：09-03 ${10+vats.indexOf(v)%7}:24 | 超时:6.${vats.indexOf(v)%9}天`:job.state==='ready'?'准备进缸 | 下道：'+job.next:`${job.hours}时后进缸 | 下道：${job.next}`}</div>{job.state!=='running'&&<div>减量 中和 染色 {job.converted?'· 已转卡':''}</div>}</div><input aria-label={`选择 ${job.card} ${v}`} type="checkbox" checked={selected.includes(job.id)} onClick={e=>e.stopPropagation()} onChange={e=>setSelected(s=>e.target.checked?[...s,job.id]:s.filter(id=>id!==job.id))}/><span className="schedule-sequence">{String(slot+1).padStart(2,'0')}</span></div>}</div>})}</div>)}
    {!visibleVats.length&&<Empty description="未找到符合条件的排产任务"/>}
   </div></div>
-  <Drawer title="排产任务详情" open={!!detail} onClose={()=>setDetail(null)} width={550}>{detail&&<Descriptions bordered column={1} items={Object.entries({'流程卡':detail.card,'染缸':detail.vat,'订字':detail.order||'未填写','色号':detail.color||'未填写','颜色深浅':detail.depth||'未记录','计划日期':dates[detail.slot<2?0:detail.slot<5?1:2],'排产顺序':detail.slot+1,'下道工序':detail.next,'转卡状态':jobs.find(j=>j.id===detail.id)?.converted?'已转卡':'未转卡'}).map(([label,children])=>({key:label,label,children}))}/>}</Drawer>
+  <Drawer title="排产任务详情" open={!!detail&&detail.state!=='waiting'} onClose={()=>setDetail(null)} width={550}>{detail&&<Descriptions bordered column={1} items={Object.entries({'流程卡':detail.card,'染缸':detail.vat,'订字':detail.order||'未填写','色号':detail.color||'未填写','颜色深浅':detail.depth||'未记录','计划日期':dates[detail.slot<2?0:detail.slot<5?1:2],'排产顺序':detail.slot+1,'下道工序':detail.next,'转卡状态':jobs.find(j=>j.id===detail.id)?.converted?'已转卡':'未转卡'}).map(([label,children])=>({key:label,label,children}))}/>}</Drawer>
   <CapacityDialog scheduledDetails={jobs.map(j=>({card:j.card,vat:j.vat,slot:j.slot+1,pieces:j.pieces}))} scheduledPieces={jobs.reduce<Record<string,number>>((acc,j)=>{if(j.pieces!==undefined)acc[j.card]=(acc[j.card]||0)+j.pieces;return acc},{})} scheduledOrders={jobs.map(j=>j.card)} open={stats} onClose={()=>setStats(false)} onSchedule={schedule}/>
   <Modal title="发起浴比变更" open={!!bathRequest} onCancel={()=>setBathRequest(null)} onOk={submitBath} width={1100} okText="提交浴比变更" cancelText="取消" okButtonProps={{disabled:!bathReason.trim()}}>{bathRequest&&requestFormula&&<><Alert type="warning" showIcon message="配方浴比超出染缸范围，请先申请浴比变更，确认后重新排产。"/><div className="formula-card-heading" style={{marginTop:12}}><h3>流程卡详情</h3><Button type="text" aria-label={bathDetailsOpen?'收起流程卡详情':'展开流程卡详情'} icon={<DownOutlined rotate={bathDetailsOpen?180:0}/>} onClick={()=>setBathDetailsOpen(!bathDetailsOpen)}/></div>{bathDetailsOpen&&<Descriptions className="formula-card-metadata" bordered size="small" column={3} items={[
  {key:'basic',label:'基础信息',children:`${bathRequest.item.card} | ${bathRequest.item.order} | ${bathRequest.item.product}`},
@@ -41,6 +42,9 @@ export default function DyeSchedule(){
  {key:'finished',label:'成品要求',children:'—'},
  {key:'requirements',label:'加工要求',children:'无要求',span:3}
  ]}/>}<h3>配方详情</h3><DyeFormulaTable compact formula={requestFormula.approved}/><Space style={{marginTop:16}}>申请浴比：1:<InputNumber aria-label="申请浴比" min={5} max={9} value={newBath} onChange={setNewBath}/></Space><Input.TextArea aria-label="浴比变更原因" style={{marginTop:12}} rows={2} placeholder="变更原因（必填）" value={bathReason} onChange={e=>setBathReason(e.target.value)}/></>}</Modal>
+  <Modal title="开卡审核" open={!!detail&&detail.state==='waiting'} width="94vw" style={{top:20}} footer={null} destroyOnClose onCancel={()=>setDetail(null)}>
+   {detail?.state==='waiting'&&<CardOpeningReview key={detail.id} planId={detail.id} onWarehouse={()=>message.info('请到进仓确认页面处理')} onApproved={()=>{setJobs(read());setDetail(null)}}/>}
+  </Modal>
   <SchedulingDrawer open={planning} onClose={()=>setPlanning(false)} jobs={jobs} onSchedule={schedule}/>
 
  </div>

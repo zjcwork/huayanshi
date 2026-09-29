@@ -1,12 +1,12 @@
 import {formulaNumber} from './formula-number';
 import {dyeReviewCards} from './dye-review-cards';
 import {useState} from 'react';
-import {App,Button,Descriptions,Drawer,Input,InputNumber,Modal,Popconfirm,Select,Space,Table,Tag,Tooltip} from 'antd';
+import {App,Button,Checkbox,Descriptions,Drawer,Input,InputNumber,Modal,Popconfirm,Select,Space,Table,Tag,Tooltip} from 'antd';
 import {BarcodeOutlined,DownOutlined,FileTextOutlined} from '@ant-design/icons';
 import './dye-process.css';
 import './formula-change-review.css';
 import DyeFormulaTable from './DyeFormulaTable';
-import {loadFormulaState,saveFormulaState,submitFormula,sameFormula,type Formula} from './dye-formula-model';
+import {loadFormulaState,saveFormulaState,submitFormula,type Formula} from './dye-formula-model';
 
 type Step={key:string;name:string;start:number|null;target:number|null;rate:number|null;minutes:number;note:string};
 type Stage={key:string;code:string;steps:Step[]};
@@ -18,6 +18,7 @@ const makeSteps=(code='0210B'):Step[]=> (code==='0210B'?[
  ['进料',null,null,null,10],['升温',40,95,2,28],['保温',95,95,null,30],['降温',95,60,2,18],['出水',null,null,null,10]
 ]:[['进料',null,null,null,8],['升温',40,60,2,10],['保温',60,60,null,15],['出水',null,null,null,10]]).map((r,i)=>({key:String(i),name:String(r[0]),start:r[1] as number|null,target:r[2] as number|null,rate:r[3] as number|null,minutes:Number(r[4]),note:''}));
 const initial:Process[]=[{key:'0705',name:'0705减量',approved:true,stages:[{key:'s1',code:'0705',steps:makeSteps('0705')}]},{key:'2228',name:'2228中和',approved:false,stages:[{key:'s2',code:'2228',steps:makeSteps('2228')}]},{key:'1001',name:'1001染色',approved:false,stages:[{key:'s3',code:'0210B',steps:makeSteps()}]}];
+const formulaChangeTypes=['减量调整','预定调整','前处理调整','pH值调整','浴比调整','助剂调整','前道工艺调整','后整理工艺调整','上油温度调整','原料调整','染料调整','配方调整','客户品质调整','其他调整'];
 
 const histories=[{key:'h1',order:'阳光1978-1',card:'Y2606308404',code:'0210B',name:'漂白，直白',time:'2026-09-03 15:22',worker:'沈锋'},{key:'h2',order:'芹王AE',card:'Y2606303701',code:'0705',name:'减量工艺',time:'2026-09-01 10:40',worker:'钟伟祥'},{key:'h3',order:'国张711',card:'Y2606303704',code:'2228',name:'中和工艺',time:'2026-08-30 11:41',worker:'smcs'}];
 export default function DyeProcessReview({onChanges}:{onChanges:()=>void}){
@@ -25,13 +26,12 @@ export default function DyeProcessReview({onChanges}:{onChanges:()=>void}){
  const [activeCard,setActiveCard]=useState(dyeReviewCards[0].card);
  const cardInfo=dyeReviewCards.find(c=>c.card===activeCard)!;
  const processKey=(card:string)=>card==='Y2606308404'?'lab-dye-process':`lab-dye-process-${card}`;
- const [changeDetailsOpen,setChangeDetailsOpen]=useState(true);
  const [detailOpen,setDetailOpen]=useState(true),[scanOpen,setScanOpen]=useState(false),[scanCard,setScanCard]=useState('');
  const [formulaState,setFormulaState]=useState(()=>loadFormulaState(activeCard));
- const [draft,setDraft]=useState<Formula>(()=>structuredClone(formulaState.approved)),[formulaEditing,setFormulaEditing]=useState(false),[changeOpen,setChangeOpen]=useState(false),[changeReason,setChangeReason]=useState('');
+ const [draft,setDraft]=useState<Formula>(()=>structuredClone(formulaState.approved)),[changeOpen,setChangeOpen]=useState(false),[changeReason,setChangeReason]=useState('');
+ const [changeTypes,setChangeTypes]=useState<string[]>(['浴比调整']);
  const pending=formulaState.changes.find(c=>c.card===activeCard&&c.status==='待工段长审核');
- const dirty=!sameFormula(draft,formulaState.approved);
- const submitChange=()=>{try{const next=submitFormula(loadFormulaState(activeCard),draft,changeReason,formulaState.version,'水木');saveFormulaState(next);setFormulaState(next);setDraft(structuredClone(next.approved));setFormulaEditing(false);setChangeOpen(false);message.success('配方变更已提交，等待工段长审核');onChanges();}catch(e){message.error((e as Error).message)}};
+ const submitChange=()=>{try{if(!changeTypes.length)throw new Error('请选择变更类型');if(!changeReason.trim())throw new Error('请填写变更原因');const requestType=changeTypes.includes('浴比调整')?'bath':'auxiliary';const next=submitFormula(loadFormulaState(activeCard),draft,`${changeTypes.join('、')}：${changeReason.trim()}`,formulaState.version,'水木',requestType,changeTypes);saveFormulaState(next);setFormulaState(next);setDraft(structuredClone(next.approved));setChangeOpen(false);message.success('配方变更已提交，等待工段长审核');onChanges();}catch(e){message.error((e as Error).message)}};
 
  const [processes,setProcesses]=useState<Process[]>(()=>{try{return JSON.parse(localStorage.getItem('lab-dye-process')||'null')||initial}catch{return initial}});
  const [current,setCurrent]=useState('1001'),[expanded,setExpanded]=useState(true),[historyOpen,setHistoryOpen]=useState(false),[historySearch,setHistorySearch]=useState(''),[historyCode,setHistoryCode]=useState('0210B'),[addOpen,setAddOpen]=useState(false),[newCode,setNewCode]=useState('0210B'),[auditOpen,setAuditOpen]=useState(false);
@@ -47,7 +47,7 @@ export default function DyeProcessReview({onChanges}:{onChanges:()=>void}){
   try{
    const latest=loadFormulaState(card);setActiveCard(card);setFormulaState(latest);setDraft(structuredClone(latest.approved));
    setProcesses(JSON.parse(localStorage.getItem(processKey(card))||'null')||initial.map(p=>({...p,approved:p.key==='0705'||p.key==='2228'&&dyeReviewCards.findIndex(c=>c.card===card)%2===0})));
-   setCurrent('1001');setExpanded(true);setFormulaEditing(false);setScanOpen(false);setDetailOpen(true);
+   setCurrent('1001');setExpanded(true);setScanOpen(false);setDetailOpen(true);
   }catch{message.error('读取流程卡失败，请重试');}
  };
  if(!detailOpen)return <section className="panel dye-review-empty"><button className="scan-prompt" onClick={()=>setScanOpen(true)}><BarcodeOutlined/>请扫描流程卡开始审核</button><Modal title="扫描流程卡" open={scanOpen} onCancel={()=>setScanOpen(false)} onOk={()=>startReview()} okText="开始审核" cancelText="取消"><p>请扫描条码或输入流程卡号</p><Select aria-label="选择审核流程卡" showSearch optionFilterProp="label" style={{width:370}} value={activeCard} onChange={card=>startReview(card)} options={dyeReviewCards.map(c=>({value:c.card,label:`${c.card} | ${c.order} | ${c.colorNo}`}))}/><Input autoFocus aria-label="审核流程卡号" placeholder="请输入流程卡号" prefix={<BarcodeOutlined/>} value={scanCard} onChange={e=>setScanCard(e.target.value)} onPressEnter={()=>startReview()}/></Modal></section>;
@@ -65,18 +65,10 @@ export default function DyeProcessReview({onChanges}:{onChanges:()=>void}){
  {title:'说明',width:180,render:(_:unknown,r:Step)=><Input aria-label={`阶段${index+1}第${Number(r.key)+1}步说明`} value={r.note} onChange={e=>updateStep(stage.key,r.key,'note',e.target.value)}/>}
  ]} summary={()=> <Table.Summary.Row><Table.Summary.Cell index={0} colSpan={5}>工艺工时总长</Table.Summary.Cell><Table.Summary.Cell index={5}>{stage.steps.reduce((n,r)=>n+r.minutes,0)}</Table.Summary.Cell><Table.Summary.Cell index={6}/></Table.Summary.Row>}/></div>)}
  {!process.stages.length&&<div className="dye-no-stage">暂无工艺阶段，请点击“新增阶段”添加。</div>}
- <div className="dye-formula-heading"><h3>配方-染色 <small>{formulaNumber(formulaState.approved.bath,activeCard,formulaState.version)}</small></h3>{pending?<Space><span>原浴比：1:{pending.before.bath}</span><span style={{color:pending.before.bath!==pending.after.bath?'#e58016':undefined}}>申请变更浴比：1:{pending.after.bath}</span></Space>:<span><span className="red">*</span>浴比：1: <InputNumber aria-label="染色配方浴比" disabled={!formulaEditing} min={0.01} value={draft.bath} onChange={bath=>setDraft(d=>({...d,bath}))}/></span>}{pending?<Space><Tag color="orange">待工段长审核</Tag><Button onClick={onChanges}>查看变更</Button></Space>:formulaEditing?<Button onClick={()=>{setDraft(structuredClone(formulaState.approved));setFormulaEditing(false)}}>取消编辑</Button>:<Button onClick={()=>{const latest=loadFormulaState(activeCard);setFormulaState(latest);setDraft(structuredClone(latest.approved));setFormulaEditing(true)}}>编辑</Button>}</div>
- <DyeFormulaTable original={formulaState.approved} formula={pending?.before??draft} proposed={pending?.after} editing={formulaEditing&&!pending} onChange={setDraft}/>
- </div><div className="dye-footer">{pending&&<Tag color="orange">配方变更待工段长审核</Tag>}{process.approved&&<Tag color="success">{process.name}已审核</Tag>}<Button onClick={()=>{setDetailOpen(false);setScanCard('');setFormulaEditing(false);setDraft(structuredClone(formulaState.approved));setHistoryOpen(false);setAddOpen(false);setAuditOpen(false);setChangeOpen(false)}}>返 回</Button><Button type="primary" disabled={!!pending||(!dirty&&(process.approved||!process.stages.length))} onClick={()=>{if(dirty){setChangeReason('');setChangeDetailsOpen(true);setChangeOpen(true)}else setAuditOpen(true)}}>{dirty?'提交变更':pending?'变更待审核':'审 核'}</Button></div>
- <Modal className="formula-submit-modal" title="审核配方变更" width="94vw" open={changeOpen} onCancel={()=>setChangeOpen(false)} onOk={submitChange} okText="提交变更" cancelText="取消" okButtonProps={{disabled:!changeReason.trim()}}><div className="formula-card-heading"><h3>流程卡详情</h3><Button type="text" aria-label={changeDetailsOpen?'收起流程卡详情':'展开流程卡详情'} icon={<DownOutlined rotate={changeDetailsOpen?180:0}/>} onClick={()=>setChangeDetailsOpen(!changeDetailsOpen)}/></div>{changeDetailsOpen&&<Descriptions bordered size="small" column={3} className="formula-card-metadata" items={[
- {key:'basic',label:'基础信息',children:`${activeCard} | ${cardInfo.order} | ${cardInfo.product}`},
- {key:'color',label:'颜色信息',children:`${cardInfo.color} | ${cardInfo.depth} | ${cardInfo.kind}`},
- {key:'fabric',label:'白坯信息',children:'—'},
- {key:'defect',label:'不良信息',children:'—'},
- {key:'quantity',label:'米数信息',children:`预配5匹 | 实配${cardInfo.pieces}匹 | 实配${cardInfo.meters}米`},
- {key:'finished',label:'成品要求',children:'—'},
- {key:'requirements',label:'加工要求',children:'无要求',span:3},
- ]}/>}<div className="formula-compare-grid formula-application-grid"><section><h3>原配方</h3><DyeFormulaTable compact formula={formulaState.approved} ratioTitle="原比例"/></section><section><h3>申请变更配方</h3><DyeFormulaTable compact formula={draft} original={formulaState.approved} ratioTitle="申请比例"/></section></div><div style={{marginTop:16}}><label htmlFor="formula-change-reason"><span className="red">*</span> 变更原因</label><Input.TextArea id="formula-change-reason" aria-label="配方变更原因" aria-required="true" placeholder="请填写变更原因（必填）" value={changeReason} onChange={e=>setChangeReason(e.target.value)} rows={3} style={{marginTop:8}}/></div></Modal>
+ <div className="dye-formula-heading"><h3>配方-染色 <small>{formulaNumber(formulaState.approved.bath,activeCard,formulaState.version)}</small></h3>{pending?<Space><span>原浴比：1:{pending.before.bath}</span><span style={{color:pending.before.bath!==pending.after.bath?'#e58016':undefined}}>申请变更浴比：1:{pending.after.bath}</span></Space>:<span>浴比：1:{formulaState.approved.bath}</span>}{pending&&<Space><Tag color="orange">待工段长审核</Tag><Button onClick={onChanges}>查看变更</Button></Space>}</div>
+ <DyeFormulaTable original={formulaState.approved} formula={pending?.before??formulaState.approved} proposed={pending?.after}/>
+ </div><div className="dye-footer">{pending&&<Tag color="orange">配方变更待工段长审核</Tag>}{process.approved&&<Tag color="success">{process.name}已审核</Tag>}<Button onClick={()=>{setDetailOpen(false);setScanCard('');setDraft(structuredClone(formulaState.approved));setHistoryOpen(false);setAddOpen(false);setAuditOpen(false);setChangeOpen(false)}}>返 回</Button><Button disabled={!!pending} onClick={()=>{const latest=loadFormulaState(activeCard);setFormulaState(latest);if(latest.changes.some(change=>change.card===activeCard&&change.status==='待工段长审核')){message.info('已有配方变更待审核');return}setDraft(structuredClone(latest.approved));setChangeTypes(['浴比调整']);setChangeReason('');setChangeOpen(true)}}>提交变更</Button><Button type="primary" disabled={!!pending||process.approved||!process.stages.length} onClick={()=>setAuditOpen(true)}>审 核</Button></div>
+ <Modal className="formula-submit-modal" title="提交配方变更" width={680} open={changeOpen} onCancel={()=>setChangeOpen(false)} onOk={submitChange} okText="提交变更" cancelText="取消" okButtonProps={{disabled:!changeTypes.length||!changeReason.trim()}}><div className="formula-change-type-field"><strong>变更类型</strong><Checkbox.Group value={changeTypes} onChange={values=>setChangeTypes(values.map(String))}><div className="formula-change-type-grid">{formulaChangeTypes.map(type=><Checkbox key={type} value={type}>{type}</Checkbox>)}</div></Checkbox.Group></div><div className="formula-change-reason-field"><label htmlFor="formula-change-reason"><span className="red">*</span> 变更原因</label><Input.TextArea id="formula-change-reason" aria-label="配方变更原因" aria-required="true" placeholder="请填写变更原因（必填）" value={changeReason} onChange={e=>setChangeReason(e.target.value)} rows={3}/></div></Modal>
 
  <Modal title="新增工艺阶段" open={addOpen} onCancel={()=>setAddOpen(false)} okText="新增" onOk={()=>{updateStages(stages=>[...stages,{key:crypto.randomUUID(),code:newCode,steps:makeSteps(newCode)}]);setAddOpen(false);message.success('已新增工艺阶段')}}><div className="dye-modal-field"><span>工艺模板</span><Select value={newCode} onChange={setNewCode} options={templates} style={{width:280}}/></div></Modal>
  <Modal title="确认工艺审核" open={auditOpen} onCancel={()=>setAuditOpen(false)} okText="审核通过" onOk={()=>{save(processes.map(p=>p.key===current?{...p,approved:true}:p));setAuditOpen(false);message.success(`${process.name}审核通过，已保存到本地`)}}><Descriptions column={1} items={[{key:1,label:'流程卡',children:activeCard},{key:2,label:'工艺',children:process.name},{key:3,label:'阶段数量',children:process.stages.length},{key:4,label:'总时长',children:`${total} 分钟`}]}/></Modal>

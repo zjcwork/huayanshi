@@ -17,7 +17,7 @@ export default function RepairOverview({team,now}:{team:string;now:number}){
  const sum=(field:'today'|'current'|'total'|'previous'|'previousTotal')=>rows.reduce((value,row)=>value+row[field],0);
  const current=sum('current'),previous=sum('previous'),rate=sum('total')?current/sum('total')*100:0,previousRate=sum('previousTotal')?previous/sum('previousTotal')*100:0;
  return <section className="foreman-panel cloth-panel repair-summary-panel">
-  <div className="foreman-section-title"><div><span className="section-mark teal"/><h2>回修</h2></div><span className="unit-label">{dayjs(now).format('YYYY年M月')} · 模拟统计</span></div>
+  <div className="foreman-section-title"><div><span className="section-mark teal"/><h2>品质</h2></div><span className="unit-label">{dayjs(now).format('YYYY年M月')} · 模拟统计</span></div>
   <div className="repair-summary-metrics">
    <div className="repair-summary-metric"><span>当日回修数</span><strong>{sum('today')}<small>条</small></strong><span className="repair-summary-date">{dayjs(now).format('M月D日')}</span></div>
    <div className="repair-summary-metric"><span>本月累计</span><strong>{current}<small>条</small></strong><Trend current={current} previous={previous}/></div>

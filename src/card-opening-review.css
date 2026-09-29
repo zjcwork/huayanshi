@@ -17,3 +17,11 @@
 .opening-plan-summary{display:flex;flex-wrap:wrap;gap:12px 32px;margin-bottom:12px;font-size:12px;color:#7f8fa3}.opening-plan-summary b{color:#333;font-weight:500}
 
 .opening-current-process{margin-top:3px;font-size:12px;color:#1677ff;line-height:1.4}
+
+.opening-warehouse-link{border:0;padding:0;background:transparent;cursor:pointer}.opening-warehouse-link .ant-tag{cursor:pointer;margin:0}.opening-warehouse-link:focus-visible{outline:2px solid #1677ff;outline-offset:2px;border-radius:3px}
+
+.opening-review.opening-review-embedded{display:block;min-height:0}.opening-review-embedded>.opening-workspace{gap:12px}.opening-review-embedded .opening-formula-workspace{display:flex;flex-direction:column}.opening-review-embedded .opening-formula-detail{min-height:0}
+
+.opening-process-details .ant-table-cell{text-align:center!important;vertical-align:middle!important;padding:4px 6px!important;height:29px;white-space:normal;overflow-wrap:anywhere}.opening-process-details .ant-table-thead th{background:#f0f0f0!important}.opening-process-details .process-highlight>td{background:#99c9ef!important}.opening-process-details .ant-table-tbody>tr:hover>td{background:inherit}.opening-process-details .process-highlight:hover>td{background:#99c9ef!important}
+
+.opening-review-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.opening-review-details>section{min-width:0}.opening-review-details>section+section{border-left:1px solid #e1e7ef;padding-left:20px}.opening-review-details .opening-section-heading{margin-bottom:10px}@media(max-width:900px){.opening-review-details{grid-template-columns:minmax(0,1fr)}.opening-review-details>section+section{border-left:0;border-top:1px solid #e1e7ef;padding-left:0;padding-top:16px}}

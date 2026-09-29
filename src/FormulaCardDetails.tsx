@@ -10,7 +10,7 @@ const production=[['成品手感','滑爽'],['成品光暗','一般'],['布面�
 function Requirements({groups}:{groups:string[][]}){
  return <div className="formula-requirement-groups">{groups.map(([label,...values])=><span className="formula-requirement-group" key={label}><span>{label}：</span>{values.map(value=><Tag key={value}>{value}</Tag>)}</span>)}</div>;
 }
-export default function FormulaCardDetails({change,plan,details,timeLabel='申请时间',compact=false,warehouseStyle=false,confirmedBy}:{change?:Change;plan?:Job;details?:{product:string;color:string;depth:string};timeLabel?:string;compact?:boolean;warehouseStyle?:boolean;confirmedBy?:string}){
+export default function FormulaCardDetails({change,plan,details,timeLabel='申请时间',compact=false,warehouseStyle=false,hideContext=false,confirmedBy,confirmedAt}:{change?:Change;plan?:Job;details?:{product:string;color:string;depth:string};timeLabel?:string;compact?:boolean;warehouseStyle?:boolean;hideContext?:boolean;confirmedBy?:string;confirmedAt?:string}){
  const cardId=change?.card??plan?.card;
  const card=dyeReviewCards.find(c=>c.card===cardId),order=items.find(c=>c.card===cardId);
  if(compact&&change){
@@ -31,7 +31,7 @@ export default function FormulaCardDetails({change,plan,details,timeLabel='申�
    ['加工要求','打长卷 | 成品手感：滑爽 | 成品光暗：一般 | 布面起皱风格：否 | 布面光洁：否 | 高牢度：否 | 预缩要求：否'],
    ['报单时间',order?.created??'2026-09-17 13:06:51'],
   ];
-  return <><dl className="formula-compact-summary">{fields.map(([label,value])=><div key={label} className={label==='加工要求'?'formula-compact-requirements':''}><dt>{label}：</dt><dd>{value}</dd></div>)}</dl><div className="formula-change-context"><span>流程卡：{change.card.replace(/-1$/, '')}</span><span>变更原因：{change.reason}</span>{warehouseStyle&&<span>申请人：{change.applicant?.trim()||'未记录'}</span>}{confirmedBy!==undefined&&<span>确认人：{confirmedBy||'未记录'}</span>}<span>{timeLabel}：{change.submittedAt?new Date(change.submittedAt).toLocaleString():'—'}</span></div></>;
+  return <><dl className="formula-compact-summary">{fields.map(([label,value])=><div key={label} className={label==='加工要求'?'formula-compact-requirements':''}><dt>{label}：</dt><dd>{value}</dd></div>)}</dl>{!hideContext&&<div className="formula-change-context"><span>流程卡：{change.card.replace(/-1$/, '')}</span><span>{change.category==='addition'?'加料原因：':''}{change.reason}</span>{warehouseStyle&&<span>申请人：{change.applicant?.trim()||'未记录'}</span>}{confirmedBy!==undefined&&<span>确认人：{confirmedBy||'未记录'}</span>}<span>{confirmedAt!==undefined?'确认时间':timeLabel}：{(confirmedAt!==undefined?confirmedAt:change.submittedAt)?new Date(confirmedAt!==undefined?confirmedAt:change.submittedAt).toLocaleString():'未记录'}</span></div>}</>;
  }
  if(plan){
   const requirements=[...processing.flatMap(([, ...values])=>values),...production.map(([label,...values])=>`${label}：${values.join('、')}`)].join(' | ');
@@ -69,5 +69,5 @@ export default function FormulaCardDetails({change,plan,details,timeLabel='申�
   {key:'badReason',label:'原因',children:'—'},
   {key:'processing',label:'加工要求',span:'filled',children:<Requirements groups={processing}/>},
   {key:'production',label:'生产要求',span:'filled',children:<Requirements groups={production}/>},
- ]}/>{change&&<div className="formula-change-context"><span>流程卡：{change.card}</span><span>变更原因：{change.reason}</span><span>{timeLabel}：{change.submittedAt?new Date(change.submittedAt).toLocaleString():'—'}</span></div>}</>;
+ ]}/>{change&&!hideContext&&<div className="formula-change-context"><span>流程卡：{change.card}</span><span>{change.category==='addition'?'加料原因：':''}{change.reason}</span>{confirmedBy!==undefined&&<span>确认人：{confirmedBy||'未记录'}</span>}<span>{confirmedAt!==undefined?'确认时间':timeLabel}：{(confirmedAt!==undefined?confirmedAt:change.submittedAt)?new Date(confirmedAt!==undefined?confirmedAt:change.submittedAt).toLocaleString():'未记录'}</span></div>}</>;
 }

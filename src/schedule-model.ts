@@ -1,4 +1,5 @@
-export type Job={id:string;vat:string;slot:number;card:string;order:string;color:string;depth:string;hex:string;state:'running'|'ready'|'planned'|'waiting';next:string;hours:number;urgent:boolean;pieces?:number;entryWeight?:string|number;head?:string;converted?:boolean;completed?:boolean;currentProcess?:string};
+import type {OpeningReview} from './formula-query-model.ts';
+export type Job={processNo?:string;linkedAdditionInfo?:string;repairInfo?:string;openingReview?:OpeningReview;id:string;vat:string;slot:number;card:string;order:string;color:string;depth:string;hex:string;state:'running'|'ready'|'planned'|'waiting';next:string;hours:number;urgent:boolean;pieces?:number;entryWeight?:string|number;head?:string;converted?:boolean;completed?:boolean;currentProcess?:string};
 export const vats=Array.from({length:16},(_,i)=>`J${String(i+1).padStart(2,'0')}#`);
 const names=['芹王AE','芹王TEST','项阳CVC2602','阳光1978-1','如华12362A','国华900-6','明帅24021','隆BS精1','统帛411','平月230'];
 const colors=['白银','紫灰','薄荷绿','驼色','中灰','浅蓝','灰色','深蓝'];
@@ -7,4 +8,10 @@ const seed:Job[]=vats.flatMap((vat,i)=>Array.from({length:i===0?8:i%5===0?5:3+i%
 const plannedDemo=Array.from({length:6},(_,i):Job=>{const index=i===0?0:i<3?1:2;return {id:`capacity-demo-${i}`,vat:vats[i+1],slot:5,card:`Y260630${5672+index*37}`,order:['芹王AE','芹王TEST','JS-908078'][index],color:['薄荷绿','暮蓝','1'][index],depth:['浅色','深色','中色'][index],hex:['#a9d7bd','#263b69','#7b8593'][index],state:'planned',next:'染色',hours:24,urgent:false,pieces:index===0?20:14};});
 export const readScheduleJobs=():Job[]=>{let result:Job[];try{const x=JSON.parse(localStorage.getItem('lab-dye-schedule')||'null');result=Array.isArray(x)?[...x]:[...seed]}catch{result=[...seed]}
  const existingCards=new Set(result.map(j=>j.card));
- for(const demo of plannedDemo){if(existingCards.has(demo.card))continue;let target={vat:demo.vat,slot:demo.slot};if(result.some(j=>j.vat===target.vat&&j.slot===target.slot)){const free=vats.flatMap(vat=>Array.from({length:8},(_,slot)=>({vat,slot}))).find(t=>!result.some(j=>j.vat===t.vat&&j.slot===t.slot));if(!free)continue;target=free;}result.push({...demo,...target});}return result;};
+ for(const demo of plannedDemo){if(existingCards.has(demo.card))continue;let target={vat:demo.vat,slot:demo.slot};if(result.some(j=>j.vat===target.vat&&j.slot===target.slot)){const free=vats.flatMap(vat=>Array.from({length:8},(_,slot)=>({vat,slot}))).find(t=>!result.some(j=>j.vat===t.vat&&j.slot===t.slot));if(!free)continue;target=free;}result.push({...demo,...target});}const waitingId='j03-waiting-demo-v1';
+ if(!result.some(job=>job.id===waitingId)){
+  const slot=[3,4,6,7].find(slot=>!result.some(job=>job.vat==='J03#'&&job.slot===slot));
+  if(slot!==undefined)result.push({id:waitingId,vat:'J03#',slot,card:'Y2606308520',order:'锦丰903',color:'中灰',depth:'中色',hex:'#90969c',state:'waiting',next:'染色',hours:slot*6,urgent:false,pieces:8,entryWeight:480,linkedAdditionInfo:'加料1次',repairInfo:'无回修'});
+ }
+ result=result.map(job=>job.id===waitingId?{...job,processNo:job.processNo??'G260922004',linkedAdditionInfo:job.linkedAdditionInfo??'加料1次',repairInfo:job.repairInfo??'无回修'}:job);
+ return result;};

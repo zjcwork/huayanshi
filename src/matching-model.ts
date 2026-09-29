@@ -2,7 +2,7 @@ import {formulaNumber} from './formula-number.ts';
 export type AdditionRow={key:string;stage:number;code:string;ratio:number|null;algorithm:string;unit:string;amount:number|null;process:string;added?:boolean};
 export type DetailRow={process?:string;ph?:string;key:string;stage:number;code:string;ratio:number|null;algorithm:string;unit:string;added?:boolean};
 export type AdditionBatch={code:string;amount:number;reason:string;time:string;depth?:string;direction?:string;mode?:string;rows?:AdditionRow[]};
-export type MatchingRecord={team?:'甲班'|'乙班'|'丙班';dueAt?:string;formulaVersion?:number;order?:string;colorNo?:string;bathRatio?:number;demo?:boolean;linkedVat:string;result:'待对样'|'未通过'|'通过'|'通过并直送';reason:string;additions:AdditionBatch[];resamples:{reason:string;time:string}[];formula?:DetailRow[];decisions?:Decision[]};
+export type MatchingRecord={productionKind?:'头缸'|'连缸'|'回修';team?:'甲班'|'乙班'|'丙班';dueAt?:string;formulaVersion?:number;order?:string;colorNo?:string;bathRatio?:number;demo?:boolean;linkedVat:string;result:'待对样'|'未通过'|'通过'|'通过并直送';reason:string;additions:AdditionBatch[];resamples:{reason:string;time:string}[];formula?:DetailRow[];decisions?:Decision[]};
 export const matchingFormula:DetailRow[]=[
  {key:'CP1',stage:1,code:'CP1',ratio:1.455,algorithm:'布重',unit:'克/市斤'},
  {key:'CP2',stage:1,code:'CP2',ratio:0.97,algorithm:'布重',unit:'克/市斤'},

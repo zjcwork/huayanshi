@@ -75,3 +75,66 @@
  .dye-matching-overview>section:nth-child(2) .foreman-section-title,.dye-matching-overview>.dye-bias-panel .foreman-section-title{min-height:55px;padding-block:10px}
  .dye-matching-overview>section:nth-child(2) .foreman-panel-note,.dye-matching-overview>.dye-bias-panel .foreman-panel-note{padding-block:9px;font-size:10px}
 }
+
+.progress-table .current-team-row{background:#edf5ff}.progress-table .current-team-row>th{box-shadow:inset 3px 0 #1677ff}.progress-table tbody tr{cursor:pointer}.progress-table .team-row-select{display:inline-flex;align-items:center;border:0;background:transparent;padding:0;color:inherit;font:inherit}.progress-table .team-row-select:focus-visible{outline:2px solid #1677ff;outline-offset:3px}
+
+.matching-current-team{font-size:11px;background:#edf4ff;color:#3475dc;padding:2px 7px;border-radius:4px}
+
+.matching-stage-table-wrap{padding:0 12px 12px}
+.matching-stage-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px}
+.matching-stage-table th,.matching-stage-table td{border:1px solid #dfe5ef;padding:16px 8px;text-align:center}
+.matching-stage-table thead th{background:#f5f7fb;color:#71829b;font-weight:500;padding:12px 8px}
+.matching-stage-table tbody th{text-align:left;font-weight:600;color:#324b70;background:#fafbfd;white-space:nowrap}
+.matching-stage-table td strong{font-size:22px;font-variant-numeric:tabular-nums}
+.matching-stage-table .pending{color:#3475dc}.matching-stage-table .completed{color:#13a38b}.matching-stage-table .overdue{color:#ff4d4f}.matching-stage-table .unavailable{color:#a4afbf}
+.matching-stage-sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+
+/* Keep the overdue list immediately beside team progress. */
+.dye-matching-overview>.dye-inspection-overdue{contain:none;display:flex;flex-direction:column;min-width:0}
+.dye-inspection-overdue .repair-overdue-wrap{max-height:245px;overflow:auto;flex:1}
+.dye-inspection-overdue .repair-overdue-table{font-size:11px}
+.dye-inspection-overdue .repair-overdue-table th,.dye-inspection-overdue .repair-overdue-table td{padding:10px 5px}
+@media(min-width:1401px){
+ .dye-matching-overview{grid-template-columns:minmax(280px,1.1fr) minmax(340px,1.2fr) repeat(2,minmax(0,1fr))}
+ .dye-matching-overview>.dye-inspection-overdue{grid-column:2;grid-row:1}
+ .dye-matching-overview>.dye-addition-panel{grid-column:3;grid-row:1;contain:size;display:flex;flex-direction:column}
+ .dye-matching-overview>.dye-bias-panel{grid-column:4;grid-row:1}
+}
+@media(min-width:851px) and (max-width:1400px){
+ .dye-matching-overview{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto auto}
+ .dye-matching-overview>.dye-inspection-overdue{grid-column:2;grid-row:1}
+ .dye-matching-overview>.dye-addition-panel{grid-column:1;grid-row:2}
+ .dye-matching-overview>.dye-bias-panel{grid-column:2;grid-row:2;contain:none}
+ .dye-matching-overview .addition-chart svg{height:200px}
+}
+@media(max-width:850px){.dye-matching-overview>.dye-inspection-overdue,.dye-matching-overview>.dye-addition-panel{grid-column:1;grid-row:auto}}
+
+/* Combined statistics panel: additions above color bias. */
+.dye-matching-overview>.dye-statistics-panel{grid-column:3;grid-row:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.dye-statistics-panel>.dye-addition-panel,.dye-statistics-panel>.dye-bias-panel{flex:1;min-height:0;display:flex;flex-direction:column}
+.dye-statistics-panel>.dye-bias-panel{border-top:1px solid #e9eef5}
+.dye-statistics-panel .foreman-section-title{min-height:32px;padding-block:6px}
+.dye-statistics-panel .addition-chart{flex:1;min-height:80px}
+.dye-statistics-panel .addition-chart svg{height:110px;width:100%}
+.dye-statistics-panel .foreman-panel-note{padding-block:4px;font-size:9px}
+@media(min-width:1401px){.dye-matching-overview{grid-template-columns:minmax(280px,1fr) minmax(340px,1.1fr) minmax(300px,1fr)}}
+@media(min-width:851px) and (max-width:1400px){.dye-matching-overview>.dye-statistics-panel{grid-column:1 / -1;grid-row:2}}
+@media(max-width:850px){.dye-matching-overview>.dye-statistics-panel{grid-column:1;grid-row:auto}}
+
+@media(min-width:1401px){
+ .dye-matching-overview{grid-template-columns:minmax(280px,1fr) minmax(340px,1.1fr) clamp(300px,21vw,380px)}
+}
+.dye-statistics-panel .addition-chart{padding:0 8px;min-height:0;flex:0 0 auto}
+.dye-statistics-panel .addition-chart svg{display:block;width:100%;height:auto;aspect-ratio:500 / 230}
+
+.progress-table.sampling-kind-progress{border-collapse:collapse;table-layout:fixed}
+.progress-table.sampling-kind-progress th,.progress-table.sampling-kind-progress td{border:1px solid #dfe5ef;text-align:center;padding:12px 6px}
+.progress-table.sampling-kind-progress th:first-child{width:24%;padding-left:10px;text-align:left}
+.progress-table.sampling-kind-progress tbody th{background:#fafbfd;font-weight:600}
+.progress-table.sampling-kind-progress tbody tr{cursor:default}
+
+.foreman-section-title .shift-day-label{font-size:11px;color:#71829b;padding-inline:4px}
+
+.dye-matching-overview .dye-statistics-panel .foreman-section-title{min-height:28px;padding-block:4px}
+.dye-statistics-panel .addition-chart svg{aspect-ratio:auto}
+.dye-statistics-panel>.dye-addition-panel,.dye-statistics-panel>.dye-bias-panel{flex:0 0 auto}

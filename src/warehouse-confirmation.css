@@ -3,3 +3,27 @@
 .warehouse-order-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0;border:1px solid #edf0f4;border-radius:3px;font-size:12px;line-height:1.7}.warehouse-order-summary>div{display:flex;align-items:baseline;min-width:0;padding:5px 10px;border-bottom:1px solid #edf0f4}.warehouse-order-summary dt{flex-shrink:0;color:#929292}.warehouse-order-summary dd{margin:0;overflow-wrap:anywhere;color:#333}.warehouse-order-summary .warehouse-order-requirements{grid-column:span 2}.warehouse-order-summary>div:nth-last-child(-n+2){border-bottom:0}@media(max-width:1000px){.warehouse-order-summary{grid-template-columns:1fr}.warehouse-order-summary .warehouse-order-requirements{grid-column:auto}}
 
 .warehouse-category-tabs .ant-tabs-nav{margin-bottom:10px}.warehouse-category-tabs .ant-tabs-tab{font-size:12px;padding:8px 0}.warehouse-category-tabs .ant-tabs-tab+.ant-tabs-tab{margin-left:14px}
+.warehouse-category-tabs .ant-tabs-tab+.ant-tabs-tab{margin-left:6px}.warehouse-category-tabs .ant-tabs-tab{font-size:11px}.warehouse-category-tabs .ant-tabs-tab-btn{text-align:center}
+.warehouse-review .warehouse-formula-pair{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto;align-items:start}.warehouse-formula-pair>.opening-formula-detail{height:100%;padding:12px}.warehouse-formula-pair .bad-formula-title{min-height:32px;flex-wrap:wrap}.warehouse-before-note{color:#8692a2;font-size:11px;margin:0 0 10px}.warehouse-formula-pair .ant-table-cell{overflow-wrap:anywhere}@media(max-width:1100px){.warehouse-review .warehouse-formula-pair{grid-template-columns:minmax(0,1fr)}}
+
+.warehouse-formula-pair .warehouse-defect-tag{white-space:normal;overflow-wrap:anywhere;max-width:100%;margin-right:0}
+
+.warehouse-before-note{display:flex;flex-wrap:wrap;gap:4px 16px;line-height:1.7}.warehouse-before-note>span{white-space:nowrap}.warehouse-before-note>span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+
+.warehouse-history-switch{background:#fff;border:1px solid #e1e7ef;border-radius:5px;padding:10px 12px}.warehouse-history-switch .ant-space{max-width:100%}
+
+
+.warehouse-formula-select{display:flex;align-items:center;gap:4px;max-width:100%;color:#385477}.warehouse-formula-select>span{white-space:nowrap}.warehouse-formula-select .ant-select{width:210px;max-width:100%}
+
+/* Share the header row height so both recipe tables start at the same position. */
+@media(min-width:1101px){
+ .warehouse-review .warehouse-formula-pair{grid-template-rows:auto 1fr;row-gap:0;align-items:stretch}
+ .warehouse-formula-pair>.opening-formula-detail{display:grid;grid-template-rows:subgrid;grid-row:1 / span 2;row-gap:0;align-content:start}
+ .warehouse-formula-pair>.opening-formula-detail:first-child{grid-column:1}
+ .warehouse-formula-pair>.opening-formula-detail:nth-child(2){grid-column:2}
+}
+.warehouse-formula-header,.warehouse-formula-body{min-width:0}
+
+.warehouse-formula-body{display:flex;flex-direction:column}
+.warehouse-formula-body>.opening-actions{margin-top:auto}
+.warehouse-formula-body>.ant-table-wrapper,.warehouse-formula-body>.ant-input{flex-shrink:0}

@@ -17,5 +17,43 @@ export function ensureFormulaChangeDemo(){
   Object.assign(next.changes[0],{id,source:'demo',colorNo:card.colorNo,submittedAt:new Date(Date.now()-index*35*60*1000).toISOString()});
   saveFormulaState(next);
  });
- return loadFormulaState();
+ const additions=[
+  {card:'Y2606308511',vat:'J01#',entryWeight:480,code:'B28',amount:0.08,reason:'首缸对色偏浅，申请补加艳蓝 KN-RHG 0.08 克/升',applicant:'张敏'},
+  {card:'Y2606308512',vat:'J03#',entryWeight:360,code:'CP1',amount:0.12,reason:'白度不足，申请补加 ER-1增白剂 0.12 克/市斤',applicant:'李强'},
+  {card:'Y2606308513',vat:'J05#',entryWeight:600,code:'B10',amount:0.05,reason:'色光偏绿，申请补加 3BSN红150% 0.05 克/升',applicant:'王芳'},
+ ];
+ additions.forEach((addition,index)=>{
+  const card=dyeReviewCards.find(card=>card.card===addition.card)!;
+  const state=loadFormulaState(card.card),id=`formula-addition-demo-v1-${card.card}`;
+  const existing=state.changes.find(change=>change.id===id);
+  if(existing){
+   if(!existing.vat||existing.entryWeight==null){existing.vat??=addition.vat;existing.entryWeight??=addition.entryWeight;saveFormulaState(state);}
+   return;
+  }
+  if(state.changes.some(change=>change.id===id||change.card===card.card&&change.status==='待工段长审核'))return;
+  const after=structuredClone(state.approved);
+  const row=after.rows.find(row=>row.code===addition.code)!;
+  row.ratio=Number(((row.ratio??0)+addition.amount).toFixed(3));
+  const next=submitFormula(state,after,addition.reason,state.version,addition.applicant);
+  Object.assign(next.changes[0],{id,category:'addition',source:'demo',vat:addition.vat,entryWeight:addition.entryWeight,colorNo:card.colorNo,submittedAt:new Date(Date.now()-index*25*60*1000).toISOString()});
+  saveFormulaState(next);
+ });
+ // Backfill vat/weight for the existing demonstration change requests as well.
+ const state=loadFormulaState();
+ const planInfo:Record<string,{vat:string;entryWeight:number}>={
+  Y2606308404:{vat:'J02#',entryWeight:600},
+  Y2606303701:{vat:'J01#',entryWeight:360},
+  Y2606303704:{vat:'J04#',entryWeight:480},
+  Y2606305746:{vat:'J05#',entryWeight:300},
+  Y2606305709:{vat:'J03#',entryWeight:720},
+ };
+ let updated=false;
+ state.changes=state.changes.map(change=>{
+  const info=planInfo[change.card];
+  if(!info||change.vat&&change.entryWeight!=null)return change;
+  updated=true;
+  return {...change,vat:change.vat||info.vat,entryWeight:change.entryWeight??info.entryWeight};
+ });
+ if(updated)saveFormulaState(state);
+ return state;
 }
