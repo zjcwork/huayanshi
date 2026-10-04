@@ -6,6 +6,7 @@ export type Recipe = {code:string;name:string;ratio:number;unit:string};
 export type WorkItem = {id:string;processCard?:string;additionCount?:number;order:string;kind:'大货'|'预打样'|'回修'|'复样';product:string;color:string;colorNo:string;swatch:string;depth:string;team:Team;phase:Phase;worker:string|null;due:string;created:string;urgent:boolean;returns:number;lastReason:string;cloth:Cloth;clothDue:string;clothOwner:string;formula:Recipe[];version:number;logs:{time:string;event:string;note:string}[]};
 export const teamMembers:{name:string;team:Team;capacity:number}[]=[{name:'姜诗林',team:'甲班',capacity:8},{name:'钟伟祥',team:'甲班',capacity:6},{name:'沈锋',team:'甲班',capacity:8},{name:'章良军',team:'甲班',capacity:6},{name:'戚兴锋',team:'乙班',capacity:8},{name:'陈凯',team:'乙班',capacity:6},{name:'余海滨',team:'乙班',capacity:6},{name:'沈宇',team:'丙班',capacity:8},{name:'俞秋锋',team:'丙班',capacity:6}];
 export const pendingCloth=(t:WorkItem)=>t.cloth==='待带布'||t.cloth==='带布中';
+export const displayInspectionCard=(card:string)=>card.replace(/^Y/,'T');
 export const isAssigned=(t:WorkItem)=>!!t.worker&&['已分配','进行中','待确认'].includes(t.phase);
 export const isOverdue=(t:WorkItem,now=Date.now())=>['待分配','已分配','进行中','待确认'].includes(t.phase)&&new Date(t.due).getTime()<now;
 export const isRepeated=(t:WorkItem)=>t.returns>=2&&t.phase!=='已完成';

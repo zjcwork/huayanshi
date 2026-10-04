@@ -25,7 +25,7 @@ import QueryFormulaModal,{queryFormulaSnapshot,queryVersionReason,type QueryForm
 import type {WorkbenchTarget} from './workbench-navigation';
 const orderGroups=[{title:'量产订单管理',pages:['量产订单','订单信息审核','订单工艺审核','订单颜色审核','计划订单']},{title:'预打样单管理',pages:['预打样单','预打样颜色审核']}];
 const productionPages=['染色工艺审核','染色配方审核','染色核算','核算查询','染缸计划','带布通知','进行中','待验收','待确认','验收记录','带布查询'];
-const pageLabel=(name:string)=>name==='配方查询'?'配方履历':name;
+const pageLabel=(name:string)=>name==='配方查询'?'配方履历':name==='配方确认'?'变更确认':name;
 const menus=['打样','抄样','配方审核','配方变更','配方确认','配方查询','打样进度'];
 const productionFormulaMenus=['对样','进仓确认'];
 const initialTabs=['试样管理工作台','工艺分析','对样结果查询','半检带布查询','半检对样到站','成品对样到站','带布通知','带布到站统计','试样在制品库存','进行中','待验收','预打样单'];
@@ -80,7 +80,9 @@ function Main(){
  const queryActive=queryList.find(row=>row.key===activeRow.key)??queryList[0]??queryRecords[0];
  const queryBathOptions=Array.from(new Set([queryActive.ratio,4,6])).filter(ratio=>ratio!==5).sort((left,right)=>left-right);
  const queryFormulaBase=queryActive.formula.replace(/^C\d{2}/,`C${String(queryBathRatio).padStart(2,'0')}`);
- const queryUsages=[4,3,3,3,2,1,0].map((version,index)=>({key:index,version,formula:queryFormulaBase.replace(/v\d+$/,`v${version}`),card:`Y260630${3701+Math.max(0,queryRecords.findIndex(record=>record.key===queryActive.key))*30+(6-index)*3}`,bath:queryBathRatio,addition:version===0?3:version===2?2:0,defect:version===0?'色差':version===2?'色光偏红':'—',created:dayjs(queryActive.created).add(6-index,'day').format('YYYY-MM-DD HH:mm'),confirmed:version!==4,available:version===3}));
+ const queryLargeUsages=[4,3,3,3,2,1,0].map((version,index)=>({key:index,version,formula:queryFormulaBase.replace(/v\d+$/,`v${version}`),card:`Y260630${3701+Math.max(0,queryRecords.findIndex(record=>record.key===queryActive.key))*30+(6-index)*3}`,bath:queryBathRatio,addition:version===0?3:version===2?2:0,defect:version===0?'色差':version===2?'色光偏红':'—',created:dayjs(queryActive.created).add(6-index,'day').format('YYYY-MM-DD HH:mm'),confirmed:version!==4,available:version===3,isSample:false}));
+ const querySmallUsage={key:'sample',version:0,formula:queryFormulaBase.replace(/^C/,'A').replace(/v\d+$/,'v0'),card:`A-SAMPLE-${queryActive.key}`,bath:queryBathRatio,addition:0,defect:'—',created:dayjs(queryActive.created).subtract(1,'day').format('YYYY-MM-DD HH:mm'),confirmed:true,available:false,isSample:true};
+ const queryUsages=[querySmallUsage,...queryLargeUsages];
  const queryVersionRows=queryUsages.filter((row,index,rows)=>rows.findIndex(candidate=>candidate.formula===row.formula)===index);
  const selectedQueryUsage=queryUsages.find(row=>row.formula===querySelectedFormula)??queryUsages.find(row=>row.card===queryUsageCard)??queryUsages.find(row=>row.available)??queryUsages[0];
  const selectedFormulaCards=queryUsages.filter(row=>row.formula===selectedQueryUsage.formula);
@@ -109,9 +111,9 @@ function Main(){
   <tr><th>加工要求</th><td colSpan={13}>{queryActive.processingRequirements||'—'}</td></tr>
  </tbody></table></div>
  <div className="query-history-sections"><section className="panel"><div className="query-history-section-heading query-history-bath-heading"><h3>配方履历</h3><Tabs className="query-bath-tabs" activeKey={String(queryBathRatio)} onChange={key=>{const ratio=Number(key),prefix=`C${String(ratio).padStart(2,'0')}`;setQueryBathRatio(ratio);setQuerySelectedFormula(current=>current?current.replace(/^C\d{2}/,prefix):'')}} items={queryBathOptions.map(ratio=>({key:String(ratio),label:`浴比 1:${ratio}`}))}/><span>选择版本查看右侧配方</span></div><Table className="query-version-table" bordered size="small" tableLayout="fixed" pagination={false} scroll={{y:360}} dataSource={queryVersionRows} onRow={row=>({onClick:()=>{setQuerySelectedFormula(row.formula);setQueryUsageCard(row.card)}})} rowClassName={row=>row.formula===selectedQueryUsage.formula?'active-row':''} columns={[
- {title:'配方号',dataIndex:'formula',width:150,ellipsis:true,render:(value,row)=><a onClick={event=>{event.stopPropagation();setQuerySelectedFormula(row.formula);setQueryUsageCard(row.card)}}>{value}{!row.confirmed&&<sup className="copy-formula-unconfirmed">未确认</sup>}</a>},
+ {title:'配方号',dataIndex:'formula',width:170,ellipsis:true,render:(value,row)=><a onClick={event=>{event.stopPropagation();setQuerySelectedFormula(row.formula);setQueryUsageCard(row.card)}}>{value}{row.isSample&&<Tag className="query-sample-formula-tag" color="blue">小样</Tag>}{!row.confirmed&&<sup className="copy-formula-unconfirmed">未确认</sup>}</a>},
  {title:'浴比',dataIndex:'bath',width:60,align:'center',render:value=>`1:${value}`},
- {title:'变更原因',width:150,ellipsis:true,render:(_,row)=>queryVersionReason(row.version)},
+ {title:'变更原因',width:150,ellipsis:true,render:(_,row)=>row.isSample?'小样配方':queryVersionReason(row.version)},
  {title:'变更时间',dataIndex:'created',width:135},
  {title:'确认人',width:75,align:'center',render:(_,row)=>row.confirmed?'水木':'—'}
  ]}/></section><section className="panel query-history-version-detail"><Tabs activeKey={queryDetailTab} onChange={key=>setQueryDetailTab(key as 'formula'|'cards')} tabBarExtraContent={<Space><span className="query-history-current-formula">{queryRecord.formula}</span>{queryDetailTab==='formula'&&<><Button type="link" icon={<EditOutlined/>} onClick={()=>setQueryEditing(queryRecord)}>编辑配方</Button><Button type="link" icon={<PrinterOutlined/>} onClick={()=>window.print()}>打印</Button></>}</Space>} items={[
