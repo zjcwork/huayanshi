@@ -2,7 +2,7 @@ import {useState} from 'react';
 import {Button,Drawer,Empty,Input,Radio,Select,Tabs} from 'antd';
 import {SearchOutlined} from '@ant-design/icons';
 import dayjs from 'dayjs';
-import {items,sales,type Item} from './CapacityDialog';
+import {items,productionProcesses,sales,type Item} from './CapacityDialog';
 import SchedulePopover,{type Allocation} from './SchedulePopover';
 import './scheduling-drawer.css';
 const types=['全部','正常单','厂外回修','厂外染','清洗布','试样布'];
@@ -19,7 +19,7 @@ export default function SchedulingDrawer({open,onClose,jobs,onSchedule}:{open:bo
  const rows=typed.filter(r=>(shade==='全部'||colorName(r)===shade)&&(formula==='全部'||(r.bath==='配方未出'?'配方未出':'配方已出')===formula)&&(head==='全部'||r.head===head)).sort((a,b)=>(sort==='asc'?1:-1)*a.due.localeCompare(b.due));
  const vats=available.reduce((n,r)=>n+r.vats,0);
  return <Drawer className="scheduling-drawer" open={open} onClose={onClose} width="min(660px, 100vw)" mask={false} styles={{wrapper:{top:56},body:{padding:0}}} title={<Tabs activeKey={view} onChange={setView} items={[{key:'order',label:`订单排产(${vats}缸)`},{key:'card',label:`流程卡排产(${available.length}张)`}]}/>}>
-  <div className="scheduling-filters"><div className="scheduling-search"><Input aria-label="待排订单搜索" suffix={<SearchOutlined/>} placeholder="请输入订字/色号/流程卡号" value={query} allowClear onChange={e=>setQuery(e.target.value)}/><Select aria-label="交期排序" value={sort} onChange={setSort} options={[{value:'asc',label:'交期时间正序'},{value:'desc',label:'交期时间倒序'}]}/><Select aria-label="排产工序筛选" placeholder="工序筛选" value={process} allowClear onChange={setProcess} options={['染色','定型'].map(value=>({value,label:value}))}/></div>
+  <div className="scheduling-filters"><div className="scheduling-search"><Input aria-label="待排订单搜索" suffix={<SearchOutlined/>} placeholder="请输入订字/色号/流程卡号" value={query} allowClear onChange={e=>setQuery(e.target.value)}/><Select aria-label="交期排序" value={sort} onChange={setSort} options={[{value:'asc',label:'交期时间正序'},{value:'desc',label:'交期时间倒序'}]}/><Select aria-label="排产工序筛选" placeholder="工序筛选" value={process} allowClear onChange={setProcess} options={productionProcesses.map(value=>({value,label:value}))}/></div>
    <div className="scheduling-sellers">{['全部业务员',...sales].map(name=><Button key={name} type={seller===(name==='全部业务员'?'':name)?'primary':'default'} onClick={()=>setSeller(name==='全部业务员'?'':name)}>{name}</Button>)}</div>
    <Tabs activeKey={kind} onChange={setKind} items={types.map(t=>({key:t,label:`${t}(${base.filter(r=>typeMatches(r,t)).length})`}))}/>
   </div>
