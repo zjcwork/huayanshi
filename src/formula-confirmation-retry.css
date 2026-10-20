@@ -1,0 +1,34 @@
+.formula-confirmation-retry-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 28px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  background: #f5f7fa;
+  color: #66758a;
+}
+
+.formula-confirmation-retry-summary b {
+  color: #263c59;
+}
+
+.formula-confirmation-retry-modal .dye-formula {
+  margin-bottom: 16px;
+}
+
+.formula-confirmation-retry-reason {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+}
+
+.formula-confirmation-retry-reason > span {
+  padding-top: 6px;
+  font-weight: 600;
+  color: #354a67;
+}
+
+.formula-confirmation-retry-reason textarea {
+  resize: none;
+}

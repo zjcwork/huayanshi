@@ -1,0 +1,35 @@
+.dye-formula-review{height:calc(100vh - 91px);margin-bottom:0;padding:0 8px 8px;display:flex;flex-direction:column;overflow:hidden}
+.dye-formula-review-title{min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:18px;border-bottom:1px solid #e2e7ee;cursor:pointer}
+.dye-formula-review-title>div{display:flex;align-items:center;gap:10px;min-width:0;white-space:nowrap}
+.dye-formula-review-title b{font-size:14px;color:#26364c;flex:0 0 auto}
+.dye-formula-review-title span{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.dye-formula-review-title .ant-tag{margin:0;flex:0 0 auto}
+.dye-formula-review-meta{margin:8px 0 2px}
+.dye-formula-review-meta .ant-descriptions-item-label,.dye-formula-review-meta .ant-descriptions-item-content{padding:6px 10px!important;font-size:12px!important}
+.dye-formula-review-meta .ant-descriptions-item-label{color:#69778a!important;background:#f7f9fc!important;white-space:nowrap}
+.dye-formula-review-toolbar{height:48px;flex:0 0 48px;display:flex;align-items:center;gap:12px}
+.dye-formula-review-toolbar h3{margin:0;font-size:13px;color:#26364c}
+.dye-formula-review-spacer{flex:1}
+.dye-formula-review-table{flex:1;min-height:0;overflow:hidden;border-top:1px solid #c7c7c7}
+.dye-formula-review-table>.ant-table-wrapper{height:100%}
+.dye-formula-review-table .ant-table-container{border-top:0!important}
+.dye-formula-review-table .ant-table-thead>tr>th{text-align:center;height:38px;background:#f2f3f5!important;font-weight:600}
+.dye-formula-review-table .ant-table-tbody>tr>td{height:43px;padding:4px 7px!important;text-align:center}
+.dye-formula-review-table .ant-select,.dye-formula-review-table .ant-input-number,.dye-formula-review-table .ant-input{width:100%}
+.dye-formula-review-table .ant-btn-link{padding-inline:2px}
+.dye-formula-review-source{flex:0 0 54px;display:flex;align-items:center;justify-content:space-between;gap:20px;padding-top:8px;color:#536177}
+.dye-formula-review-source b{color:#303c4d}
+.dye-formula-review-field{display:grid;grid-template-columns:70px minmax(0,1fr);align-items:start;gap:12px;margin-top:16px}
+.dye-formula-review-field label{padding-top:5px;color:#4d5b6d}
+.dye-formula-change-modal .ant-modal-header{margin-bottom:18px}
+.dye-formula-change-modal .ant-modal-title{font-size:16px}
+.dye-formula-change-modal .ant-modal-body{padding:0 2px 4px}
+.dye-formula-change-row{display:grid;grid-template-columns:76px minmax(0,1fr);align-items:start;gap:12px}
+.dye-formula-change-row>label{padding-top:3px;color:#303c4d;font-weight:600}
+.dye-formula-change-types{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px 18px;align-items:center}
+.dye-formula-change-types .ant-checkbox-wrapper{margin:0;white-space:nowrap;color:#4c5868}
+.dye-formula-change-info{color:#faad14;font-size:18px;cursor:help}
+.dye-formula-change-reason{margin-top:24px}
+.dye-formula-change-reason .ant-input{min-height:88px;resize:none}
+.dye-formula-required{color:#ff4d4f}
+@media(max-width:1200px){.dye-formula-review-title span{font-size:12px}.dye-formula-review-meta .ant-descriptions-view{overflow:auto}.dye-formula-review-meta table{min-width:950px}.dye-formula-change-types{grid-template-columns:repeat(4,minmax(0,1fr))}}

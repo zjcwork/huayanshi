@@ -1,0 +1,109 @@
+.query-history-reference-title {
+  margin-bottom: 14px;
+  color: #333;
+  font-size: 14px;
+}
+
+.query-history-reference-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  color: #263c59;
+  font-size: 14px;
+}
+
+.query-history-reference-section::before {
+  content: "";
+  width: 3px;
+  height: 16px;
+  border-radius: 2px;
+  background: #1677ff;
+}
+
+.query-history-reference-details {
+  margin-bottom: 14px;
+}
+
+.query-history-reference-details .ant-descriptions-item-label,
+.query-history-reference-details .ant-descriptions-item-content {
+  padding: 7px 12px !important;
+  font-size: 12px;
+}
+
+.query-history-reference-layout {
+  display: grid;
+  grid-template-columns: minmax(620px, 44%) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.query-history-reference-history,
+.query-history-reference-current {
+  min-width: 0;
+}
+
+.query-history-reference-heading,
+.query-history-reference-current-heading {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.query-history-reference-heading .query-history-reference-section {
+  flex: none;
+  margin: 0 12px 0 0;
+}
+
+.query-history-reference-heading .query-bath-tabs {
+  flex: 1;
+}
+
+.query-history-reference-current-heading {
+  border-bottom: 2px solid #1677ff;
+}
+
+.query-history-reference-current-heading h3 {
+  margin: 0;
+  color: #1677ff;
+  font-size: 13px;
+}
+
+.query-history-reference-current-heading h3 span {
+  margin-left: 12px;
+  color: #68788d;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.query-history-reference-current-heading .ant-btn {
+  padding-inline: 4px;
+}
+
+.query-history-reference-layout .ant-table-cell {
+  padding: 6px 7px !important;
+  font-size: 11px;
+}
+
+.query-history-reference-formula {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  text-align: center;
+}
+
+.query-history-reference-formula small {
+  color: #7b8797;
+}
+
+.query-history-reference-formula .ant-tag {
+  margin-inline: 5px 0;
+}
+
+@media (max-width: 1200px) {
+  .query-history-reference-layout {
+    grid-template-columns: 1fr;
+  }
+}
