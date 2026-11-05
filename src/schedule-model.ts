@@ -1,5 +1,5 @@
 import type {OpeningReview} from './formula-query-model.ts';
-export type Job={planNo?:string;processNo?:string;linkedAdditionInfo?:string;repairInfo?:string;openingReview?:OpeningReview;id:string;vat:string;slot:number;card:string;order:string;color:string;depth:string;hex:string;state:'running'|'ready'|'planned'|'waiting';next:string;hours:number;urgent:boolean;pieces?:number;entryWeight?:string|number;head?:string;converted?:boolean;completed?:boolean;currentProcess?:string};
+export type Job={plannedShipmentAt?:string;deviceOperations?:{device:number;hours:number}[];planNo?:string;processNo?:string;linkedAdditionInfo?:string;repairInfo?:string;openingReview?:OpeningReview;id:string;vat:string;slot:number;card:string;order:string;color:string;depth:string;hex:string;state:'running'|'ready'|'planned'|'waiting';next:string;hours:number;urgent:boolean;pieces?:number;entryWeight?:string|number;head?:string;converted?:boolean;completed?:boolean;currentProcess?:string};
 const toPlanNumber=(card:string)=>card.startsWith('PD')?card:card.startsWith('Y')?`PD${card.slice(1)}`:`PD${card}`;
 export const displayScheduleNumber=(job:Pick<Job,'state'|'card'|'planNo'>)=>job.state==='waiting'?(job.planNo??toPlanNumber(job.card)):job.card;
 export const vats=Array.from({length:16},(_,i)=>`J${String(i+1).padStart(2,'0')}#`);
@@ -19,5 +19,6 @@ export const readScheduleJobs=():Job[]=>{let result:Job[];try{const x=JSON.parse
   result.push({id:`${vat}-waiting-plan-demo-v1`,vat,slot,card:`Y261004${String(index+1).padStart(3,'0')}`,planNo:`PD261004${String(index+1).padStart(3,'0')}`,order:names[(index+4)%names.length],color:colors[(index+4)%colors.length],depth:index%3===0?'浅色':index%3===1?'中色':'深色',hex:['#a9d7bd','#7b8593','#263b69'][index%3],state:'waiting',next:index%3===0?'减量':index%3===1?'中和':'白坯发货',hours:slot*6,urgent:false,pieces:6+index%5,entryWeight:420+index*5,linkedAdditionInfo:'无加料',repairInfo:'无回修'});
  });
  result=result.map(job=>{const normalized=job.id===waitingId?{...job,processNo:job.processNo??'G260922004',linkedAdditionInfo:job.linkedAdditionInfo??'加料1次',repairInfo:job.repairInfo??'无回修'}:job;return normalized.state==='waiting'?{...normalized,planNo:normalized.planNo??toPlanNumber(normalized.card)}:normalized});
+ try{const cancelled=JSON.parse(localStorage.getItem('lab-cancelled-schedule-ids')||'[]');if(Array.isArray(cancelled))result=result.filter(job=>!cancelled.includes(job.id))}catch{/* Ignore invalid cancellation history. */}
  try{localStorage.setItem('lab-dye-schedule',JSON.stringify(result))}catch{/* Keep the demo readable when browser storage is unavailable. */}
  return result;};

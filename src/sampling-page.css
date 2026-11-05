@@ -30,3 +30,5 @@
 
 
 @media(max-width:760px){.sampling-page{grid-template-columns:minmax(0,1fr)}}
+
+.sampling-process-card{color:#1677ff;font-size:11px;line-height:1.5;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}.sampling-tickets>.muted{padding:8px;font-size:11px}

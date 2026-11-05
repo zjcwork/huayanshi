@@ -1,0 +1,4 @@
+.global-query-menu{position:fixed;z-index:10000;width:160px;padding:5px;background:#fff;border:1px solid #ddd;border-radius:5px;box-shadow:0 6px 24px #0003}
+.global-query-menu button{display:block;width:100%;padding:9px 14px;border:0;background:transparent;text-align:left;cursor:pointer;color:#333;font:inherit;border-radius:3px}
+.global-query-menu button:hover,.global-query-menu button:focus-visible{background:#e6f4ff;color:#1677ff;outline:none}
+.global-query-content{min-width:0}.quick-query-tools{display:flex;gap:10px;margin-bottom:14px}.quick-query-tools .ant-input-search{max-width:420px}

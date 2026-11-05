@@ -3,7 +3,7 @@ import {App,Button,Descriptions,Form,Input,InputNumber,Modal,Select,Space,Table}
 import type {LabRecord} from './data';
 import './query-formula-editor.css';
 export type QueryEditorRow={key:string;stage:number;code:string;ratio:number;algorithm:string;unit:string;process?:string;processName?:string;ph?:string};
-export type QueryFormulaEdit={bath:number;rows:QueryEditorRow[];reason:string;updatedAt:string};
+export type QueryFormulaEdit={bath:number;rows:QueryEditorRow[];reason:string;updatedAt:string;applicant?:string;confirmedBy?:string;confirmedAt?:string};
 export default function QueryFormulaEditor({record,initial,onClose,onSave}:{record:LabRecord;initial:{bath:number;rows:QueryEditorRow[]};onClose:()=>void;onSave:(value:QueryFormulaEdit)=>void}){
  const {message}=App.useApp();
  const [rows,setRows]=useState(()=>initial.rows.map((r,i)=>({...r,process:r.process??(i===0?'04':''),processName:r.processName??(i===0?'130°C*20′':''),ph:r.ph??(i===0?'4.8–5.2':'')})));
@@ -14,7 +14,7 @@ export default function QueryFormulaEditor({record,initial,onClose,onSave}:{reco
  const save=async()=>{
   try{const {reason}=await form.validateFields();
    if(!bath||!rows.length||rows.some(r=>!r.code.trim()||r.ratio<0||r.stage<1)||!rows.some(r=>r.ratio>0)){message.warning('请填写有效浴比、染助剂代码和比例');return}
-   onSave({bath,rows:rows.map(r=>({...r,ratio:Number((r.ratio*(1-(reduction??0)/100)).toFixed(4))})),reason:reason.trim(),updatedAt:new Date().toISOString()});
+   onSave({bath,rows:rows.map(r=>({...r,ratio:Number((r.ratio*(1-(reduction??0)/100)).toFixed(4))})),reason:reason.trim(),applicant:'水木',updatedAt:new Date().toISOString()});
   }catch{/* Field validation keeps the editor open. */}
  };
  const info={订字:record.order,色号:record.colorNo,品名:record.product,颜色深浅:record.depth,颜色:record.color,染料类别:'活性',客户:record.order,业务员:'赵玉琴',要求浴比:`1:${record.ratio}`,白坯克重:'200g',白坯门幅:'150cm',对色光源:'—',订单类型:'正常单',下单时间:record.created};

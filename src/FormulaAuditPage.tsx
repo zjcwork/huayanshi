@@ -4,9 +4,10 @@ import {ColumnHeightOutlined,EditOutlined,FullscreenOutlined,PrinterOutlined,Rel
 import dayjs,{type Dayjs} from 'dayjs';
 import type {LabRecord} from './data';
 import {filterFormulaAuditRows,formulaAuditCategory,type FormulaAuditCategory,type FormulaAuditFilters} from './formula-audit-model';
+import ReductionRateReferenceModal,{type ReductionRateReference} from './ReductionRateReferenceModal';
 import './formula-audit-page.css';
 
-type Props={records:LabRecord[];onAudit:(row:LabRecord,pass:boolean)=>void;renderFormula:(row:LabRecord)=>ReactNode;onEdit:(row:LabRecord)=>void};
+type Props={records:LabRecord[];onAudit:(row:LabRecord,pass:boolean)=>void;renderFormula:(row:LabRecord,reductionRate:number,onOpenReduction:()=>void)=>ReactNode;onEdit:(row:LabRecord)=>void};
 type RangeValue=[Dayjs|null,Dayjs|null]|null;
 type DetailTab='formula'|'process'|'basic';
 
@@ -29,6 +30,8 @@ export default function FormulaAuditPage({records,onAudit,renderFormula,onEdit}:
  const [selected,setSelected]=useState<Key[]>([]);
  const [activeKey,setActiveKey]=useState<string|null>(null);
  const [detailTab,setDetailTab]=useState<DetailTab>('formula');
+ const [referenceOpen,setReferenceOpen]=useState(false);
+ const [referenceRates,setReferenceRates]=useState<Record<string,number>>({});
  const active=records.find(row=>row.key===activeKey)??null;
  const rows=useMemo(()=>filterFormulaAuditRows(records,category,filters),[records,category,filters]);
  const counts=useMemo(()=>Object.fromEntries(categories.map(item=>[item.key,records.filter(row=>formulaAuditCategory(row)===item.key).length])) as Record<FormulaAuditCategory,number>,[records]);
@@ -48,8 +51,7 @@ export default function FormulaAuditPage({records,onAudit,renderFormula,onEdit}:
  </Space>;
  const pending=active?.status==='待审核';
  const formulaActions=active&&<Space size={8}>
-  <Button type="primary" onClick={()=>setDetailTab('formula')}>查看配方</Button>
-  <Button type="primary" onClick={()=>message.success('已引用当前配方的减量率')}>引用减量率</Button>
+  <span className="formula-audit-sizing-rate">含浆率 <b>不用扣</b></span>
   <Button type="primary" icon={<EditOutlined/>} disabled={!pending} onClick={()=>onEdit(active)}>编辑配方</Button>
  </Space>;
  return <section className="panel formula-audit-page">
@@ -80,7 +82,7 @@ export default function FormulaAuditPage({records,onAudit,renderFormula,onEdit}:
   ]}/>
   <Drawer rootClassName="formula-audit-drawer" open={!!active} width="calc(100vw - 176px)" title={active?<span>{active.order}<b>{active.colorNo}</b></span>:null} onClose={()=>setActiveKey(null)} footer={active&&<div className="formula-audit-drawer-footer"><Popconfirm title="确认该配方未通过？" description="审核结果将记录为未通过。" okText="确认" cancelText="取消" onConfirm={()=>decide(false)}><Button danger type="primary" disabled={!pending}>未通过</Button></Popconfirm><Button type="primary" icon={<PrinterOutlined/>} onClick={()=>window.print()}>打 印</Button><Button type="primary" disabled={!pending} onClick={()=>decide(true,true)}>通过并打印</Button></div>}>
    {active&&<Tabs className="formula-audit-detail-tabs" activeKey={detailTab} onChange={key=>setDetailTab(key as DetailTab)} tabBarExtraContent={detailTab==='formula'?formulaActions:null} items={[
-    {key:'formula',label:'大样配方',children:<div className="formula-audit-formula">{renderFormula(active)}</div>},
+    {key:'formula',label:'大样配方',children:<div className="formula-audit-formula">{renderFormula(active,referenceRates[active.key]??0,()=>setReferenceOpen(true))}</div>},
     {key:'process',label:'打样过程',children:<Table size="small" bordered pagination={false} rowKey="key" dataSource={[1,2,3,4].map(round=>({key:round,round:`第${round}枪`,time:dayjs(active.created).add(round*9,'minute').format('YYYY-MM-DD HH:mm:ss'),worker:active.worker,result:round===4?'完成':'调整中'}))} columns={[{title:'枪次',dataIndex:'round'},{title:'操作时间',dataIndex:'time'},{title:'打样员',dataIndex:'worker'},{title:'结果',dataIndex:'result',render:value=><Tag color={value==='完成'?'green':'blue'}>{value}</Tag>}]}/>},
     {key:'basic',label:'基础信息',children:<Descriptions bordered size="small" column={4} items={[
      {key:'order',label:'订字',children:active.order},{key:'colorNo',label:'色号',children:active.colorNo},{key:'product',label:'品名',children:active.product},{key:'color',label:'颜色',children:active.color},
@@ -89,5 +91,6 @@ export default function FormulaAuditPage({records,onAudit,renderFormula,onEdit}:
     ]}/>},
    ]}/>}
   </Drawer>
+  <ReductionRateReferenceModal open={referenceOpen} onClose={()=>setReferenceOpen(false)} onReference={(record:ReductionRateReference)=>{if(!active||record.rate==null)return;setReferenceRates(current=>({...current,[active.key]:record.rate!}));setReferenceOpen(false);message.success(`已引用流程卡 ${record.processCard} 的减量率 ${record.rate}%`)}}/>
  </section>;
 }
