@@ -1,6 +1,6 @@
 import {ensureFormulaChangeDemo} from './formula-change-demo';
 import {useEffect,useState} from 'react';
-import {App,Button,DatePicker,Descriptions,Empty,Input,Modal,Popover,Select,Space,Table,Tag,Tooltip} from 'antd';
+import {App,Button,DatePicker,Descriptions,Empty,Input,Modal,Popover,Select,Space,Table,Tabs,Tag,Tooltip} from 'antd';
 import {ColumnHeightOutlined,FullscreenOutlined,InfoCircleOutlined,ReloadOutlined,SettingOutlined} from '@ant-design/icons';
 import dayjs from 'dayjs';
 import {dyeReviewCards} from './dye-review-cards';
@@ -11,7 +11,9 @@ import {formulaChangeDefaultDates,formulaRetryProgress,type FormulaRetryProgress
 import DyeFormulaTable from './DyeFormulaTable';
 
 const hiddenChangeReasons=new Set(['色光偏红，红染料用量降低10%','对样颜色偏浅，艳蓝用量提高8%']);
-const changeStatusOptions=[{value:'待工段长审核',label:'待确认'},{value:'已通过',label:'已确认'},{value:'已退回',label:'未确认生产'}];
+type WorkflowStatus='待变更'|'已变更'|'待确认'|'已确认';
+const workflowStatuses:WorkflowStatus[]=['待变更','已变更','待确认','已确认'];
+const changeStatusOptions=workflowStatuses.map(value=>({value,label:value}));
 const retryProgressColors:Record<FormulaRetryProgress,string>={'待分配':'orange','进行中':'blue','已完成':'green'};
 function changeTypes(change:Change){
  if(change.changeTypes?.length)return change.changeTypes;
@@ -29,6 +31,12 @@ function waitingDuration(change:Change){
  const days=Math.floor(minutes/1440),hours=Math.floor(minutes%1440/60),rest=minutes%60;
  return days?`${days}天${hours}小时`:hours?`${hours}小时${rest}分`:`${rest}分钟`;
 }
+function workflowStatus(change:Change):WorkflowStatus{
+ if(change.status==='已通过')return '已确认';
+ if(change.status==='已退回')return '待变更';
+ if(change.reviewedFormula||change.retry?.completedAt)return '已变更';
+ return '待确认';
+}
 
 export default function FormulaChangeReview(){
  const {message}=App.useApp();
@@ -40,7 +48,7 @@ export default function FormulaChangeReview(){
  const [applied,setApplied]=useState({order:'',color:'',card:''});
  const [startDate,setStartDate]=useState<dayjs.Dayjs|null>(defaultDates.start);
  const [endDate,setEndDate]=useState<dayjs.Dayjs|null>(defaultDates.end);
- const [filterStatus,setFilterStatus]=useState<string>('待工段长审核');
+ const [filterStatus,setFilterStatus]=useState<WorkflowStatus>('待确认');
  const [selectedKeys,setSelectedKeys]=useState<string[]>([]);
  const [selected,setSelected]=useState<Change|null>(null);
  const [detailOpen,setDetailOpen]=useState(false);
@@ -51,7 +59,9 @@ export default function FormulaChangeReview(){
  const [retryDraft,setRetryDraft]=useState<Formula|null>(null);
  const [retryReason,setRetryReason]=useState('');
  useEffect(()=>{setState(ensureFormulaChangeDemo())},[]);
- const rows=state.changes.filter(change=>(change.category??'change')==='change'&&!hiddenChangeReasons.has(change.reason)&&change.order.toLowerCase().includes(applied.order)&&(change.colorNo??'').toLowerCase().includes(applied.color)&&change.card.toLowerCase().includes(applied.card)&&(!filterStatus||change.status===filterStatus)&&(!startDate||!dayjs(change.submittedAt).isBefore(startDate.startOf('day')))&&(!endDate||!dayjs(change.submittedAt).isAfter(endDate.endOf('day')))).slice(0,10);
+ const eligibleChanges=state.changes.filter(change=>(change.category??'change')==='change'&&!hiddenChangeReasons.has(change.reason));
+ const statusCounts=Object.fromEntries(workflowStatuses.map(status=>[status,eligibleChanges.filter(change=>workflowStatus(change)===status).length])) as Record<WorkflowStatus,number>;
+ const rows=eligibleChanges.filter(change=>change.order.toLowerCase().includes(applied.order)&&(change.colorNo??'').toLowerCase().includes(applied.color)&&change.card.toLowerCase().includes(applied.card)&&workflowStatus(change)===filterStatus&&(!startDate||!dayjs(change.submittedAt).isBefore(startDate.startOf('day')))&&(!endDate||!dayjs(change.submittedAt).isAfter(endDate.endOf('day')))).slice(0,10);
  const selectedInfo=selected?dyeReviewCards.find(item=>item.card===selected.card||item.order===selected.order):undefined;
  const displayedConfirmation=selected?(draft??(selected.status==='已通过'?(selected.formulaChoice==='original'?selected.before:selected.reviewedFormula??selected.after):null)):null;
  const startEditing=()=>{if(!selected)return;setDraft(structuredClone(selected.reviewedFormula??selected.after));setConfirmationMode('custom');setEditing(true)};
@@ -63,11 +73,11 @@ export default function FormulaChangeReview(){
  const openRetry=()=>{if(!selected)return;setRetryDraft(structuredClone(selected.reviewedFormula??selected.after));setRetryReason(changeReason(selected.reason));setRetryOpen(true)};
  const closeRetry=()=>{setRetryOpen(false);setRetryDraft(null);setRetryReason('')};
  const requestRetry=()=>{if(!selected||!retryDraft)return;if(!retryReason.trim()){message.warning('请填写复样原因');return;}try{let current=updateReviewFormula(loadFormulaState(),selected.id,retryDraft);current=requestFormulaRetry(current,selected.id,'水木',retryReason);saveFormulaState(current);setState(current);const updated=current.changes.find(change=>change.id===selected.id)??null;setSelected(updated);closeRetry();message.success('已按调整后的配方发起复样，请到打样页面处理');}catch(error){message.error((error as Error).message)}};
- const resetFilters=()=>{const dates=formulaChangeDefaultDates();setOrderQuery('');setColorQuery('');setCardQuery('');setApplied({order:'',color:'',card:''});setStartDate(dates.start);setEndDate(dates.end);setFilterStatus('待工段长审核');setSelectedKeys([]);setState(loadFormulaState())};
+ const resetFilters=()=>{const dates=formulaChangeDefaultDates();setOrderQuery('');setColorQuery('');setCardQuery('');setApplied({order:'',color:'',card:''});setStartDate(dates.start);setEndDate(dates.end);setFilterStatus('待确认');setSelectedKeys([]);setState(loadFormulaState())};
  return <section className="panel formula-change-table-page">
-  <div className="formula-change-table-filters"><label><span>订字：</span><Input aria-label="变更订字" placeholder="请输入订字" value={orderQuery} onChange={event=>setOrderQuery(event.target.value)} onPressEnter={search}/></label><label><span>色号：</span><Input aria-label="变更色号" placeholder="请输入色号" value={colorQuery} onChange={event=>setColorQuery(event.target.value)} onPressEnter={search}/></label><label><span>流程卡号：</span><Input aria-label="变更流程卡号" placeholder="请输入流程卡号" value={cardQuery} onChange={event=>setCardQuery(event.target.value)} onPressEnter={search}/></label><label className="formula-change-date"><span>创建时间：</span><DatePicker.RangePicker aria-label="变更创建时间" value={[startDate,endDate]} onChange={value=>{setStartDate(value?.[0]??null);setEndDate(value?.[1]??null)}} format="YYYY-MM-DD"/></label><label><span>变更状态：</span><Select aria-label="变更状态" allowClear placeholder="状态：请选择" value={filterStatus} onChange={setFilterStatus} options={changeStatusOptions}/></label><span className="formula-change-filter-spacer"/><Button type="primary" onClick={search}>查询</Button><Button onClick={resetFilters}>重置</Button></div>
-  <div className="formula-change-table-heading"><div><i/><h2>配方变更</h2><Popover trigger="click" title="开发批注" content={<div className="dye-formula-note">此处展示染色工段提交的配方相关变更。<br/>状态包括：待确认、已确认、未确认生产。<br/>已确认状态下需额外显示确认人和确认时间。</div>}><Button type="text" style={{width:30,height:30,color:'#faad14',fontSize:19}} aria-label="查看配方变更开发批注" icon={<InfoCircleOutlined/>}/></Popover></div><Space size={6}><Tooltip title="全屏"><Button type="text" icon={<FullscreenOutlined/>} onClick={()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.()}/></Tooltip><Tooltip title="刷新"><Button type="text" icon={<ReloadOutlined/>} onClick={()=>setState(loadFormulaState())}/></Tooltip><Tooltip title="表格密度"><Button type="text" icon={<ColumnHeightOutlined/>} onClick={()=>document.body.classList.toggle('comfortable')}/></Tooltip><Tooltip title="显示设置"><Button type="text" icon={<SettingOutlined/>}/></Tooltip></Space></div>
-  <Table<Change> className="formula-change-record-table" bordered size="small" rowKey="id" tableLayout="fixed" dataSource={rows} rowSelection={{selectedRowKeys:selectedKeys,onChange:keys=>setSelectedKeys(keys.map(String)),columnWidth:34}} pagination={{pageSize:20,showSizeChanger:false,showTotal:total=>`共 ${total} 条`}} locale={{emptyText:<Empty description="暂无符合条件的配方变更"/>}} scroll={{x:filterStatus==='已通过'?1580:1320}} onRow={change=>({onDoubleClick:()=>selectChange(change)})} columns={[
+  <div className="formula-change-table-filters"><label><span>订字：</span><Input aria-label="变更订字" placeholder="请输入订字" value={orderQuery} onChange={event=>setOrderQuery(event.target.value)} onPressEnter={search}/></label><label><span>色号：</span><Input aria-label="变更色号" placeholder="请输入色号" value={colorQuery} onChange={event=>setColorQuery(event.target.value)} onPressEnter={search}/></label><label><span>流程卡号：</span><Input aria-label="变更流程卡号" placeholder="请输入流程卡号" value={cardQuery} onChange={event=>setCardQuery(event.target.value)} onPressEnter={search}/></label><label className="formula-change-date"><span>创建时间：</span><DatePicker.RangePicker aria-label="变更创建时间" value={[startDate,endDate]} onChange={value=>{setStartDate(value?.[0]??null);setEndDate(value?.[1]??null)}} format="YYYY-MM-DD"/></label><label><span>变更状态：</span><Select aria-label="变更状态" value={filterStatus} onChange={value=>setFilterStatus(value as WorkflowStatus)} options={changeStatusOptions}/></label><span className="formula-change-filter-spacer"/><Button type="primary" onClick={search}>查询</Button><Button onClick={resetFilters}>重置</Button></div>
+  <div className="formula-change-table-heading"><div className="formula-change-heading-main"><div className="formula-change-heading-title"><i/><h2>配方变更</h2><Popover trigger="click" title="开发批注" content={<div className="dye-formula-note">此处展示染色工段提交的配方相关变更。<br/>状态包括：待变更、已变更、待确认、已确认。<br/>已确认状态下需额外显示确认人和确认时间。</div>}><Button type="text" style={{width:30,height:30,color:'#faad14',fontSize:19}} aria-label="查看配方变更开发批注" icon={<InfoCircleOutlined/>}/></Popover></div><Tabs className="formula-change-status-tabs" activeKey={filterStatus} onChange={key=>{setFilterStatus(key as WorkflowStatus);setSelectedKeys([])}} items={workflowStatuses.map(status=>({key:status,label:`${status} (${statusCounts[status]})`}))}/></div><Space size={6}><Tooltip title="全屏"><Button type="text" icon={<FullscreenOutlined/>} onClick={()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.()}/></Tooltip><Tooltip title="刷新"><Button type="text" icon={<ReloadOutlined/>} onClick={()=>setState(loadFormulaState())}/></Tooltip><Tooltip title="表格密度"><Button type="text" icon={<ColumnHeightOutlined/>} onClick={()=>document.body.classList.toggle('comfortable')}/></Tooltip><Tooltip title="显示设置"><Button type="text" icon={<SettingOutlined/>}/></Tooltip></Space></div>
+  <Table<Change> className="formula-change-record-table" bordered size="small" rowKey="id" tableLayout="fixed" dataSource={rows} rowSelection={{selectedRowKeys:selectedKeys,onChange:keys=>setSelectedKeys(keys.map(String)),columnWidth:34}} pagination={{pageSize:20,showSizeChanger:false,showTotal:total=>`共 ${total} 条`}} locale={{emptyText:<Empty description="暂无符合条件的配方变更"/>}} scroll={{x:filterStatus==='已确认'?1580:1320}} onRow={change=>({onDoubleClick:()=>selectChange(change)})} columns={[
    {title:'序号',width:55,align:'center',render:(_,__,index)=>index+1},
    {title:'订字',dataIndex:'order',width:150,ellipsis:true},
    {title:'色号',width:120,ellipsis:true,render:(_,change)=>change.colorNo||dyeReviewCards.find(item=>item.card===change.card||item.order===change.order)?.colorNo||'—'},
@@ -76,7 +86,7 @@ export default function FormulaChangeReview(){
    {title:'变更原因',dataIndex:'reason',width:220,ellipsis:true,render:value=>changeReason(value)},
    {title:'申请人',width:90,align:'center',render:(_,change)=>change.applicant?.trim()||'未记录'},
    {title:'申请时间',width:165,align:'center',render:(_,change)=>new Date(change.submittedAt).toLocaleString()},
-   ...(filterStatus==='已通过'?[{title:'确认人',width:90,align:'center' as const,render:(_:unknown,change:Change)=>change.reviewer?.trim()||'未记录'},{title:'确认时间',width:165,align:'center' as const,render:(_:unknown,change:Change)=>change.reviewedAt?new Date(change.reviewedAt).toLocaleString():'未记录'}]:[]),
+   ...(filterStatus==='已确认'?[{title:'确认人',width:90,align:'center' as const,render:(_:unknown,change:Change)=>change.reviewer?.trim()||'未记录'},{title:'确认时间',width:165,align:'center' as const,render:(_:unknown,change:Change)=>change.reviewedAt?new Date(change.reviewedAt).toLocaleString():'未记录'}]:[]),
    {title:'等待时长',width:110,align:'center',render:(_,change)=>waitingDuration(change)},
    {title:<Space size={2}>复样进度<Tooltip title="此处显示复样进度：待分配、进行中、已完成。"><Button type="text" size="small" aria-label="查看复样进度说明" icon={<InfoCircleOutlined/>}/></Tooltip></Space>,width:120,align:'center',render:(_,change)=>{const progress=formulaRetryProgress(change);return <Tag color={retryProgressColors[progress]}>{progress}</Tag>}},
    {title:'操作',fixed:'right',width:90,align:'center',render:(_,change)=><Button type="link" onClick={()=>selectChange(change)}>{change.status==='待工段长审核'?'去处理':'查看'}</Button>},

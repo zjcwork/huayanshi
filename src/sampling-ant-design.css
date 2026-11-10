@@ -1,0 +1,133 @@
+/* Ant Design visual contract for the sampling-management workspace only. */
+.sampling-ant-design{
+ --ant-primary:#1677ff;
+ --ant-primary-bg:#e6f4ff;
+ --ant-success:#52c41a;
+ --ant-warning:#faad14;
+ --ant-error:#ff4d4f;
+ --ant-text:#1f1f1f;
+ --ant-text-secondary:#595959;
+ --ant-border:#d9d9d9;
+ --ant-split:#f0f0f0;
+ --ant-fill:#fafafa;
+ --ant-layout:#f5f5f5;
+ color:var(--ant-text);
+ background:var(--ant-layout);
+}
+
+.sampling-ant-design main{padding:16px;background:var(--ant-layout)}
+.sampling-ant-design main.overview-main{padding:16px!important;background:var(--ant-layout)}
+
+/* Page tabs remain dense and functional, without decorative elevation. */
+.sampling-ant-design .page-tabs{border-bottom:1px solid var(--ant-split);box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.sampling-ant-design .page-tabs>div{height:32px;padding:0 14px;border-right:1px solid var(--ant-split);border-bottom:2px solid transparent;color:var(--ant-text-secondary)}
+.sampling-ant-design .page-tabs>div:hover{color:var(--ant-primary);background:#fafcff}
+.sampling-ant-design .page-tabs>div.active{color:var(--ant-primary);border-bottom-color:var(--ant-primary);background:#fff;font-weight:500}
+
+/* Standard Ant surfaces: moderate radius, clear border, restrained shadow. */
+.sampling-ant-design .panel,
+.sampling-ant-design .foreman-panel,
+.sampling-ant-design .sampling-sidebar,
+.sampling-ant-design .sampling-main,
+.sampling-ant-design .opening-review-sidebar,
+.sampling-ant-design .opening-formula-detail{
+ border-color:var(--ant-split);
+ border-radius:6px;
+ background:#fff;
+ box-shadow:0 1px 2px rgba(0,0,0,.03);
+}
+.sampling-ant-design .panel{padding:16px;margin-bottom:12px}
+.sampling-ant-design .foreman-workbench{gap:12px;color:var(--ant-text)}
+.sampling-ant-design .foreman-panel{box-shadow:0 1px 2px rgba(0,0,0,.03)}
+
+/* Headings and toolbars use one clear hierarchy. */
+.sampling-ant-design .panel h3,
+.sampling-ant-design .foreman-section-title h2,
+.sampling-ant-design .workbench-stat-heading h2,
+.sampling-ant-design .formula-change-table-heading h2{color:var(--ant-text);font-weight:600}
+.sampling-ant-design .panel h3{font-size:14px;line-height:24px}
+.sampling-ant-design .panel h3:before{width:3px;height:14px;border-radius:2px;background:var(--ant-primary);box-shadow:none}
+.sampling-ant-design .section-heading{min-height:32px;margin-bottom:12px}
+.sampling-ant-design .foreman-section-title{min-height:48px;height:auto;padding:10px 16px}
+.sampling-ant-design .section-mark{background:var(--ant-primary);box-shadow:none}
+
+/* Controls follow Ant's compact enterprise sizing and focus treatment. */
+.sampling-ant-design .ant-btn{border-radius:6px;font-weight:500;box-shadow:none}
+.sampling-ant-design .ant-btn:focus-visible,
+.sampling-ant-design button:focus-visible,
+.sampling-ant-design [role=button]:focus-visible{outline:2px solid #91caff;outline-offset:2px}
+.sampling-ant-design .ant-input,
+.sampling-ant-design .ant-input-affix-wrapper,
+.sampling-ant-design .ant-input-number,
+.sampling-ant-design .ant-picker,
+.sampling-ant-design .ant-select-selector{border-radius:6px!important}
+.sampling-ant-design .ant-tag{border-radius:4px;margin-inline-end:4px}
+.sampling-ant-design .ant-tabs-nav{margin-bottom:12px}
+.sampling-ant-design .ant-tabs-tab{font-weight:500}
+
+/* Filters are operational toolbars, with actions kept at the end. */
+.sampling-ant-design .filter-bar,
+.sampling-ant-design .formula-change-table-filters,
+.sampling-ant-design .formula-confirmation-filters,
+.sampling-ant-design .query-history-reference-filters{
+ gap:12px;
+ padding:12px 16px;
+ margin-bottom:12px;
+ border:1px solid var(--ant-split);
+ border-radius:6px;
+ background:#fff;
+ box-shadow:0 1px 2px rgba(0,0,0,.02);
+}
+.sampling-ant-design .filter-bar>span,
+.sampling-ant-design .formula-change-table-filters label>span,
+.sampling-ant-design .formula-confirmation-filters label>span{color:var(--ant-text-secondary);font-weight:500}
+
+/* Tables are the primary working surface: dense, neutral, and stateful. */
+.sampling-ant-design .ant-table-wrapper .ant-table{color:var(--ant-text);font-size:12px}
+.sampling-ant-design .ant-table-wrapper .ant-table-container{border-color:var(--ant-split)!important;border-radius:6px 6px 0 0}
+.sampling-ant-design .ant-table-wrapper .ant-table-thead>tr>th{
+ padding-block:9px!important;
+ color:#262626;
+ background:var(--ant-fill)!important;
+ border-color:var(--ant-split)!important;
+ font-weight:600;
+ white-space:nowrap;
+}
+.sampling-ant-design .ant-table-wrapper .ant-table-tbody>tr>td{border-color:var(--ant-split)!important}
+.sampling-ant-design .ant-table-wrapper .ant-table-tbody>tr:hover>td{background:#fafafa!important}
+.sampling-ant-design .ant-table-wrapper .ant-table-tbody>tr.active-row>td,
+.sampling-ant-design .ant-table-wrapper .ant-table-tbody>tr.ant-table-row-selected>td{background:var(--ant-primary-bg)!important}
+.sampling-ant-design .ant-table-wrapper .ant-table-tbody>tr.active-row>td:first-child,
+.sampling-ant-design .ant-table-wrapper .ant-table-tbody>tr.ant-table-row-selected>td:first-child{box-shadow:inset 3px 0 var(--ant-primary)}
+.sampling-ant-design .ant-pagination{margin:12px 0 0!important}
+
+/* Dashboard modules use the same Ant card language as data pages. */
+.sampling-ant-design .todo-panel .foreman-todo,
+.sampling-ant-design .change-panel .foreman-todo,
+.sampling-ant-design .workbench-stat-card,
+.sampling-ant-design .sampling-ticket{
+ border-color:var(--ant-split);
+ border-radius:6px;
+ box-shadow:none;
+}
+.sampling-ant-design .todo-panel .foreman-todo,.sampling-ant-design .change-panel .foreman-todo{background:#fafafa}
+.sampling-ant-design .todo-panel .foreman-todo:hover,.sampling-ant-design .change-panel .foreman-todo:hover{border-color:#91caff;background:#f5faff;box-shadow:0 2px 6px rgba(22,119,255,.08)}
+.sampling-ant-design .todo-panel .foreman-todo:before,.sampling-ant-design .change-panel .foreman-todo:before{background:var(--ant-primary);opacity:1}
+.sampling-ant-design .todo-panel .todo-top{color:var(--ant-text-secondary)}
+.sampling-ant-design .todo-panel .todo-bottom strong{color:var(--ant-text)}
+.sampling-ant-design .sampling-ticket.active{border-color:#91caff;background:var(--ant-primary-bg);box-shadow:inset 3px 0 var(--ant-primary)}
+
+/* Descriptions and details share the same label surface and border. */
+.sampling-ant-design .ant-descriptions-view{border-color:var(--ant-split)!important;border-radius:6px;overflow:hidden}
+.sampling-ant-design .ant-descriptions-item-label{color:var(--ant-text-secondary)!important;background:var(--ant-fill)!important;font-weight:500}
+.sampling-ant-design .ant-descriptions-item-content{color:var(--ant-text)!important;background:#fff}
+
+/* Status colors stay semantic instead of page-specific. */
+.sampling-ant-design .success-value,.sampling-ant-design .green{color:var(--ant-success)!important}
+.sampling-ant-design .danger-value,.sampling-ant-design .red,.sampling-ant-design .repair-overdue-duration{color:var(--ant-error)!important}
+.sampling-ant-design .orange{color:#d48806!important}
+
+@media(max-width:1100px){
+ .sampling-ant-design main,.sampling-ant-design main.overview-main{padding:12px!important}
+ .sampling-ant-design .filter-bar,.sampling-ant-design .formula-change-table-filters,.sampling-ant-design .formula-confirmation-filters{gap:8px;padding:10px 12px}
+}

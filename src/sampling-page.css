@@ -32,3 +32,100 @@
 @media(max-width:760px){.sampling-page{grid-template-columns:minmax(0,1fr)}}
 
 .sampling-process-card{color:#1677ff;font-size:11px;line-height:1.5;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}.sampling-tickets>.muted{padding:8px;font-size:11px}
+
+.sampling-material-card{border:1px solid #e8e8e8;border-radius:6px;overflow:hidden;margin-bottom:4px}
+.sampling-material-heading{display:flex;align-items:center;gap:16px;padding:10px 12px;background:#fafafa;border-bottom:1px solid #f0f0f0;flex-wrap:wrap;font-size:12px}
+.sampling-material-heading strong,.sampling-color-number{font-size:14px;color:#262626;font-weight:600}
+.sampling-material-deadline{margin-left:auto;color:#595959}
+.sampling-material-process{padding:8px 12px;color:#1677ff;border-bottom:1px solid #f0f0f0}
+.sampling-material-card .sampling-fabric-info{padding:12px;align-items:stretch;gap:12px}
+.sampling-material-card .sampling-fabric{width:140px;min-width:140px;height:auto;min-height:112px;background:#fafcff;font-size:12px}
+.sampling-material-card .sampling-weave{width:84px;height:54px}
+.sampling-material-card .sampling-warp{top:8px;right:8px}
+.sampling-material-card .sampling-weft{bottom:8px;left:8px}
+.sampling-material-fields{flex:1;min-width:0}
+.sampling-material-fields .ant-descriptions-item-label{width:100px;white-space:nowrap}
+.sampling-material-fields .ant-descriptions-item-label,.sampling-material-fields .ant-descriptions-item-content{padding:7px 12px!important;font-size:12px}
+.sampling-warp-label{border-left:3px solid #8bb9ff;padding-left:6px}
+.sampling-weft-label{border-left:3px solid #8cdaa2;padding-left:6px}
+.sampling-requirements{display:flex;gap:12px 24px;align-items:center;flex-wrap:wrap;border-top:1px solid #f0f0f0;padding:8px 12px;font-size:12px}
+.sampling-requirements b,.sampling-processing b{color:#595959;font-weight:400;margin-right:8px}
+.sampling-requirements>.ant-btn{margin-left:auto}
+.sampling-processing{display:flex;gap:8px;padding:0 12px 10px;font-size:12px}
+.sampling-extra-info{display:flex;gap:24px;flex-wrap:wrap;padding:10px 12px;border-top:1px solid #f0f0f0;background:#fafafa;font-size:12px;color:#595959}
+.sampling-table-toolbar{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:38px;margin-bottom:8px;font-size:12px;flex-wrap:wrap}
+.sampling-table-toolbar .ant-btn{font-size:12px}
+@media(max-width:1100px){.sampling-material-card .sampling-fabric-info{flex-wrap:wrap}.sampling-material-fields{flex-basis:420px}.sampling-material-card .sampling-fabric{flex-grow:1}.sampling-material-deadline{margin-left:0}}
+
+.sampling-material-card .sampling-annotated-fabric{display:block;width:100%;min-width:0;min-height:0;height:auto;flex:1;overflow:hidden;background:#fafcff;border-color:#d6e4ff;font-size:12px}
+.sampling-fabric-caption{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid #d6e4ff;background:#f0f5ff;text-align:left}
+.sampling-fabric-caption strong{font-weight:600;color:#262626}
+.sampling-fabric-drawing{position:relative;padding:28px 24px 30px}
+.sampling-material-card .sampling-annotated-fabric .sampling-weave{display:flex;align-items:center;justify-content:center;width:100%;height:88px;box-sizing:border-box;background:repeating-linear-gradient(90deg,transparent 0 6px,#98cdd955 6px 10px,transparent 10px 14px),repeating-linear-gradient(0deg,#86c77555 0 4px,#e5e9c455 4px 7px,#95bafa55 7px 10px)}
+.sampling-fabric-measure{padding:8px 20px;background:rgba(255,255,255,.95);border:1px solid #d9e6dc;border-radius:4px;line-height:24px;text-align:left;color:#262626}
+.sampling-fabric-warp-note{position:absolute;top:5px;left:24px;color:#305c97;line-height:20px}
+.sampling-fabric-weft-note{position:absolute;right:24px;bottom:5px;color:#357249;line-height:20px}
+
+/* Compact fabric illustration and adjacent operational requirements. */
+.sampling-material-card .sampling-fabric-info{display:grid;grid-template-columns:minmax(300px,400px) minmax(220px,1fr);gap:20px;overflow:visible;padding:12px}
+.sampling-material-card .sampling-annotated-fabric{width:100%;height:180px;box-sizing:border-box;background:#fff;border-color:#d9e3ed}
+.sampling-fabric-caption{padding:7px 12px;background:#f5f8fc;font-size:12px}
+.sampling-fabric-drawing{height:144px;box-sizing:border-box;padding:24px 14px 34px}
+.sampling-material-card .sampling-annotated-fabric .sampling-weave{width:116px;height:84px;margin:0 auto;background:repeating-linear-gradient(90deg,transparent 0 6px,#98cdd9aa 6px 10px,transparent 10px 14px),repeating-linear-gradient(0deg,#86c77599 0 4px,#e5e9c499 4px 7px,#95bafa99 7px 10px)}
+.sampling-fabric-measure{position:absolute;bottom:6px;left:12px;right:12px;border:0;border-top:1px solid #edf0f4;border-radius:0;padding:4px 0 0;background:#fff;line-height:17px;font-size:11px;text-align:center}
+.sampling-fabric-measure br{display:none}.sampling-fabric-measure br:after{content:' '}
+.sampling-fabric-warp-note{top:2px;left:14px;font-size:11px}
+.sampling-fabric-weft-note{top:48px;right:12px;bottom:auto;max-width:90px;text-align:left;font-size:11px}
+.sampling-requirements-panel{min-width:0;padding:0 4px}
+.sampling-requirements-panel h3{font-size:13px;margin:0 0 8px;font-weight:600;color:#262626}
+.sampling-requirements-panel .sampling-requirements{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;border:0;padding:0 0 10px}
+.sampling-requirements-panel .sampling-requirements>span{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.sampling-requirements-panel .sampling-requirements b{font-size:11px;color:#8c8c8c}
+.sampling-requirements-panel .sampling-requirements>.ant-btn{margin:0;justify-self:start;padding:0;height:auto;align-self:end}
+.sampling-requirements-panel .sampling-processing{border-top:1px solid #f0f0f0;padding:10px 0 0}
+.sampling-requirements-panel .sampling-extra-info{padding:8px 0;background:#fff;gap:6px;font-size:11px}
+.sampling-material-heading{padding:8px 12px;gap:12px}.sampling-material-heading strong{font-size:13px}
+.sampling-tables{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;margin-top:16px}
+.sampling-table-toolbar{min-height:28px;margin-bottom:8px}.sampling-actions{padding:0 0 8px;justify-content:flex-start;flex-wrap:wrap;gap:6px}.sampling-actions .ant-space{gap:6px!important}.sampling-actions .ant-btn{padding-inline:10px}
+.sampling-edit-table .ant-table-thead>tr>th{height:48px}
+@media(max-width:1200px){.sampling-material-card .sampling-fabric-info{grid-template-columns:minmax(280px,360px) minmax(180px,1fr);gap:12px}.sampling-requirements-panel .sampling-requirements{grid-template-columns:1fr;gap:6px}.sampling-requirements-panel .sampling-requirements>span{flex-direction:row;align-items:center}.sampling-tables{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:850px){.sampling-material-card .sampling-fabric-info{grid-template-columns:1fr}.sampling-material-card .sampling-annotated-fabric{max-width:400px}.sampling-requirements-panel .sampling-requirements{grid-template-columns:1fr 1fr}}
+
+.sampling-annotated-fabric .sampling-fabric-weft-note{top:auto;right:auto;bottom:38px;left:14px;max-width:none;white-space:nowrap;text-align:left;font-size:11px;line-height:20px}
+
+.sampling-material-card .sampling-annotated-fabric{height:180px}
+.sampling-annotated-fabric .sampling-fabric-three-columns{display:grid;grid-template-columns:minmax(0,1fr) 100px 90px;align-items:center;gap:10px;height:100%;padding:14px 12px}
+.sampling-fabric-facts{display:flex;flex-direction:column;gap:10px;text-align:left;min-width:0}
+.sampling-fabric-facts>span{display:flex;flex-direction:column;gap:2px;font-size:10px;color:#8c8c8c;line-height:1.3}
+.sampling-fabric-facts strong{font-size:11px;color:#262626;font-weight:500;overflow-wrap:anywhere}
+.sampling-material-card .sampling-annotated-fabric .sampling-fabric-three-columns .sampling-weave{width:100px;height:100px;margin:0}
+.sampling-fabric-components{display:flex;flex-direction:column;gap:24px;text-align:left}
+.sampling-annotated-fabric .sampling-fabric-components .sampling-fabric-warp-note,.sampling-annotated-fabric .sampling-fabric-components .sampling-fabric-weft-note{position:static;max-width:none;white-space:normal;font-size:11px;line-height:1.5;display:flex;flex-direction:column;gap:4px}
+.sampling-fabric-components strong{font-weight:500}
+@media(max-width:1200px){.sampling-annotated-fabric .sampling-fabric-three-columns{grid-template-columns:minmax(0,1fr) 80px 82px;gap:8px;padding:12px 10px}.sampling-material-card .sampling-annotated-fabric .sampling-fabric-three-columns .sampling-weave{width:80px;height:100px}}
+
+.sampling-requirements-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;margin:0;border-top:1px solid #f0f0f0}
+.sampling-requirements-grid>div{padding:9px 12px 9px 0;min-width:0;border-bottom:1px solid #f0f0f0}
+.sampling-requirements-grid dt{font-size:11px;color:#8c8c8c;line-height:18px;margin:0 0 3px}
+.sampling-requirements-grid dd{font-size:12px;color:#262626;line-height:20px;margin:0;overflow-wrap:anywhere}
+@media(max-width:850px){.sampling-requirements-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.sampling-requirements-panel .sampling-requirements-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+
+/* Tighten the material summary while keeping all details visible. */
+.sampling-material-card .sampling-fabric-info{padding:8px 10px}
+.sampling-material-card .sampling-annotated-fabric{height:150px}
+.sampling-annotated-fabric .sampling-fabric-three-columns{padding:8px 10px}
+.sampling-fabric-facts{gap:6px}
+.sampling-fabric-facts>span{line-height:1.2;gap:1px}
+.sampling-fabric-components{gap:16px}
+.sampling-requirements-grid>div{padding:6px 10px 6px 0}
+.sampling-requirements-grid dt{margin-bottom:2px;line-height:16px}
+.sampling-requirements-grid dd{line-height:18px}
+.sampling-tables{margin-top:12px}
+
+.sampling-task-order .sampling-resample-swatch{background:#f0f0f0;border:1px solid #d9d9d9;box-shadow:none}
+
+.sampling-fabric-facts{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:12px 8px;align-content:center}
+.sampling-fabric-facts>span{gap:4px}
+.sampling-fabric-facts strong{line-height:1.5}

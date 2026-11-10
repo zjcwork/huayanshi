@@ -4,7 +4,7 @@
 
 @media(min-width:851px) and (max-width:1350px){.foreman-todos{grid-template-columns:repeat(3,minmax(0,1fr))}}
 
-.foreman-top{grid-template-columns:minmax(0,1.35fr) minmax(0,1.2fr) minmax(240px,.85fr)}
+.foreman-top{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}
 .section-mark.coral{background:#dc6b62}
 .repair-overdue-wrap{margin:0 14px 14px;max-height:245px;overflow:auto}
 .repair-overdue-table{width:100%;border-collapse:collapse;font-size:11px;text-align:left}
@@ -13,7 +13,7 @@
 .repair-overdue-table td:first-child{white-space:nowrap;color:#5278b5;font-variant-numeric:tabular-nums}
 .repair-overdue-duration{color:#dc6b62;font-variant-numeric:tabular-nums}
 .repair-overdue-empty{padding:40px 12px;text-align:center;color:#93a0b2}
-@media(min-width:851px) and (max-width:1400px){.foreman-top{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}.foreman-top>.cloth-panel{grid-column:1 / -1}}
+@media(min-width:851px) and (max-width:1400px){.foreman-top{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}}
 @media(max-width:850px){.foreman-top{grid-template-columns:minmax(0,1fr)}}
 
 
@@ -142,9 +142,9 @@
 /* Keep sampling tasks legible and all nine to-dos on a single row. */
 .progress-table.sampling-kind-progress tbody th{font-size:16px}
 /* Single-row task cards use shared surfaces and restrained category accents. */
-.todo-panel .foreman-todos{grid-template-columns:repeat(9,minmax(140px,1fr));gap:12px;overflow-x:auto;padding:4px 20px 20px}
-.todo-panel .foreman-todo{--todo-accent:#477bc8;--todo-tint:#eef4fd;position:relative;min-width:0;padding:14px;border:1px solid #e6ecf4;border-radius:9px;background:#fff;box-shadow:0 2px 5px #26395404;transition:border-color .16s,box-shadow .16s,transform .16s}
-.todo-panel .foreman-todo:before{content:'';position:absolute;left:0;top:18px;width:3px;height:21px;border-radius:0 3px 3px 0;background:var(--todo-accent);opacity:.65}
+.workbench-action-row{display:grid;grid-template-columns:minmax(230px,2fr) minmax(0,7fr);gap:12px}.change-panel,.todo-panel{min-width:0}.change-panel .foreman-todos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0 16px 12px}.todo-panel .foreman-todos{grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;overflow:visible;padding:0 16px 12px}
+.todo-panel .foreman-todo{--todo-accent:#477bc8;--todo-tint:#eef4fd;position:relative;min-width:0;padding:7px 8px;border:1px solid #e6ecf4;border-radius:8px;background:#fff;box-shadow:0 2px 5px #26395404;transition:border-color .16s,box-shadow .16s,transform .16s}
+.todo-panel .foreman-todo:before{content:'';position:absolute;left:0;top:12px;width:3px;height:18px;border-radius:0 3px 3px 0;background:var(--todo-accent);opacity:.65}
 .todo-panel .foreman-todo.tone-1{--todo-accent:#477bc8;--todo-tint:#eef4fd}
 .todo-panel .foreman-todo.tone-2{--todo-accent:#477bc8;--todo-tint:#eef4fd}
 .todo-panel .foreman-todo.tone-3{--todo-accent:#477bc8;--todo-tint:#eef4fd}
@@ -153,12 +153,16 @@
 .todo-panel .todo-icon{display:grid;place-items:center;width:29px;height:29px;border-radius:8px;font-size:15px;color:var(--todo-accent);background:var(--todo-tint)}
 .todo-card-arrow{font-size:11px;color:#c2cddc;transition:color .16s,transform .16s}
 .todo-panel .foreman-todo:hover .todo-card-arrow{color:var(--todo-accent);transform:translateX(2px)}
-.todo-panel .todo-top{font-size:12px;font-weight:500;color:#52647e;white-space:nowrap;line-height:1.5}
-.todo-panel .todo-bottom{display:flex;align-items:flex-start;flex-direction:column;gap:7px;margin-top:8px}
-.todo-panel .todo-bottom strong{display:flex;align-items:baseline;gap:6px;font-size:30px;line-height:1.15;font-weight:600;color:#2e4667;letter-spacing:-.5px}
+.todo-panel .todo-top{align-items:flex-start;min-height:30px;font-size:11px;font-weight:500;color:#52647e;white-space:normal;line-height:1.35;overflow-wrap:anywhere}
+.todo-panel .todo-bottom{display:flex;align-items:flex-start;flex-direction:column;gap:0;margin-top:2px}
+.todo-panel .todo-bottom strong{display:flex;align-items:baseline;gap:3px;font-size:23px;line-height:1.05;font-weight:600;color:#2e4667;letter-spacing:-.5px}
 .todo-panel .todo-bottom strong small{font-size:10px;color:#9aa7b8;font-weight:400;letter-spacing:0}
 .todo-panel .todo-bottom>span{display:block;font-size:10px;color:#99a6b7;white-space:nowrap}
-@media(max-width:1150px){.todo-panel .foreman-todos{padding-inline:14px}}
+@media(max-width:1150px){.todo-panel .foreman-todos{gap:5px;padding-inline:10px}.todo-panel .foreman-todo{padding:6px 4px}.todo-panel .todo-top{min-height:28px;font-size:10px}.todo-panel .todo-bottom strong{font-size:21px}}
+
+.change-panel .foreman-todo{--todo-accent:#477bc8;--todo-tint:#eef4fd;position:relative;min-width:0;padding:7px 8px;border:1px solid #e6ecf4;border-radius:8px;background:var(--todo-tint);box-shadow:0 2px 5px #26395404;color:#435879;text-align:left;transition:border-color .16s,box-shadow .16s,transform .16s}.change-panel .foreman-todo:before{content:'';position:absolute;left:0;top:12px;width:3px;height:18px;border-radius:0 3px 3px 0;background:var(--todo-accent)}.change-panel .foreman-todo:hover{border-color:var(--todo-accent);transform:translateY(-2px)}.change-panel .todo-top{align-items:flex-start;min-height:30px;font-size:11px;font-weight:500;color:#52647e;white-space:normal;line-height:1.35}.change-panel .todo-bottom{display:flex;align-items:flex-start;flex-direction:column;margin-top:2px}.change-panel .todo-bottom strong{display:flex;align-items:baseline;gap:3px;color:#ff4d4f;font-size:23px;line-height:1.05}.change-panel .todo-bottom small{color:#9aa7b8;font-size:10px;font-weight:400}
+@media(max-width:1150px){.change-panel .foreman-todos{gap:5px;padding-inline:10px}.change-panel .foreman-todo{padding:6px 4px}.change-panel .todo-top{min-height:28px;font-size:10px}.change-panel .todo-bottom strong{font-size:21px}}
+@media(max-width:850px){.workbench-action-row{grid-template-columns:minmax(0,1fr)}.change-panel .foreman-todos{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 .todo-panel .foreman-todo{background:var(--todo-tint)}
 .todo-panel .foreman-todo:hover{background:var(--todo-tint);border-color:var(--todo-accent)}
@@ -180,3 +184,184 @@
 @media(max-width:850px){.progress-table.sampling-kind-progress tbody tr{height:56px}.progress-table.sampling-kind-progress td button,.progress-table.sampling-kind-progress td>strong{font-size:20px}}
 
 .progress-panel .progress-table-wrap:has(.sampling-kind-progress){padding-bottom:16px}
+
+.workbench-statistics-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.workbench-stat-card{--stat-accent:#4b7fc8;padding:16px 18px 18px;border-radius:9px}.workbench-stat-card.addition{--stat-accent:#d48a35}.workbench-stat-card.dye-color,.workbench-stat-card.finished-color{--stat-accent:#d06b6b}.workbench-stat-heading{display:flex;align-items:center;gap:9px;margin-bottom:15px}.workbench-stat-heading .section-mark{height:18px;background:var(--stat-accent)}.workbench-stat-heading h2{margin:0;color:#334b6d;font-size:14px}.workbench-stat-heading small{display:block;margin-top:3px;color:#9aa7b8;font-size:10px}.workbench-stat-values{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid #e7ecf3;border-radius:7px;overflow:hidden;background:#fafcff}.workbench-stat-values>div{min-width:0;padding:11px 5px;text-align:center;border-right:1px solid #e7ecf3}.workbench-stat-values>div:last-child{border-right:0}.workbench-stat-values span{display:block;min-height:17px;overflow:hidden;color:#7d8ba0;font-size:10px;white-space:nowrap;text-overflow:ellipsis}.workbench-stat-values strong{display:inline-block;margin-top:5px;color:var(--stat-accent);font-size:22px;line-height:1;font-variant-numeric:tabular-nums}.workbench-stat-values small{margin-left:3px;color:#a1adbc;font-size:9px}@media(max-width:1250px){.workbench-statistics-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:700px){.workbench-statistics-grid{grid-template-columns:1fr}.workbench-stat-card{padding-inline:14px}}
+.workbench-stat-card.repair{padding:13px 10px 4px}.repair-combo-chart svg{display:block;width:100%;height:178px}.workbench-stat-card.addition{padding-right:8px;padding-left:8px}.workbench-stat-card.addition .workbench-stat-heading{margin-right:10px;margin-left:10px;margin-bottom:0}.workbench-stat-card.addition .addition-chart{padding:0}.workbench-stat-card.addition .addition-chart svg{height:178px}.workbench-stat-card.addition .addition-chart rect{rx:0}.workbench-stat-card.addition .addition-chart .chart-gridline{stroke-dasharray:3 3}.workbench-stat-card.dye-color,.workbench-stat-card.finished-color{padding-right:8px;padding-left:8px}.workbench-stat-card.dye-color .workbench-stat-heading,.workbench-stat-card.finished-color .workbench-stat-heading{margin-right:10px;margin-left:10px;margin-bottom:0}.workbench-stat-card.dye-color .addition-chart,.workbench-stat-card.finished-color .addition-chart{padding:0}.workbench-stat-card.dye-color .addition-chart svg,.workbench-stat-card.finished-color .addition-chart svg{height:178px}.workbench-stat-card.dye-color .addition-chart rect,.workbench-stat-card.finished-color .addition-chart rect{rx:0;fill:#9aacc4}.workbench-stat-card.dye-color .addition-chart .chart-gridline,.workbench-stat-card.finished-color .addition-chart .chart-gridline{stroke-dasharray:3 3}
+
+/* The matching overview keeps only progress and the overdue queue. */
+.dye-matching-overview{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);grid-template-rows:auto;overflow-x:visible}
+.dye-matching-overview>.progress-panel{grid-column:1;grid-row:1}
+.dye-matching-overview>.dye-inspection-overdue{grid-column:2;grid-row:1}
+@media(max-width:850px){.dye-matching-overview{grid-template-columns:minmax(0,1fr)}.dye-matching-overview>.progress-panel,.dye-matching-overview>.dye-inspection-overdue{grid-column:1;grid-row:auto}}
+
+/* Unified sampling and matching operations: each progress card stays beside its related overdue queue. */
+.workbench-operations-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;align-items:stretch}
+.workbench-operations-grid>.foreman-panel{min-width:0}
+.workbench-operations-grid>.dye-inspection-overdue{display:flex;flex-direction:column;min-width:0}
+.workbench-operations-grid>.dye-inspection-overdue .repair-overdue-wrap{flex:1}
+@media(max-width:850px){.workbench-operations-grid{grid-template-columns:1fr}.workbench-operations-grid>.foreman-panel{grid-column:1}}
+
+/* Workbench visual contract — aligned with the sampling component standards. */
+.sampling-ant-design .foreman-workbench{gap:12px;color:var(--ant-text)}
+.sampling-ant-design .foreman-workbench .workbench-action-row,
+.sampling-ant-design .foreman-workbench .workbench-operations-grid{gap:12px}
+.sampling-ant-design .foreman-workbench .foreman-panel{
+ border:1px solid var(--ant-split);
+ border-radius:6px;
+ background:#fff;
+ box-shadow:0 1px 2px rgba(0,0,0,.03)
+}
+.sampling-ant-design .foreman-workbench .foreman-section-title{
+ min-height:48px;
+ height:auto;
+ padding:10px 16px
+}
+.sampling-ant-design .foreman-workbench .foreman-section-title h2,
+.sampling-ant-design .foreman-workbench .workbench-stat-heading h2{
+ margin:0;
+ color:var(--ant-text);
+ font-size:14px;
+ line-height:22px;
+ font-weight:600
+}
+.sampling-ant-design .foreman-workbench .foreman-section-title small,
+.sampling-ant-design .foreman-workbench .unit-label,
+.sampling-ant-design .foreman-workbench .shift-day-label,
+.sampling-ant-design .foreman-workbench .workbench-stat-heading small{
+ color:var(--ant-text-secondary);
+ font-size:12px;
+ line-height:20px;
+ font-weight:400
+}
+
+/* Action cards use the same readable office scale. */
+.sampling-ant-design .foreman-workbench .todo-panel .foreman-todo,
+.sampling-ant-design .foreman-workbench .change-panel .foreman-todo{
+ padding:12px;
+ border-color:var(--ant-split);
+ border-radius:6px;
+ box-shadow:none
+}
+.sampling-ant-design .foreman-workbench .todo-panel .foreman-todo:hover,
+.sampling-ant-design .foreman-workbench .change-panel .foreman-todo:hover{
+ transform:none;
+ border-color:#91caff;
+ background:#f5faff;
+ box-shadow:0 2px 6px rgba(22,119,255,.08)
+}
+.sampling-ant-design .foreman-workbench .todo-panel .todo-top,
+.sampling-ant-design .foreman-workbench .change-panel .todo-top{
+ min-height:44px;
+ color:var(--ant-text-secondary);
+ font-size:14px;
+ line-height:22px;
+ font-weight:500;
+ overflow-wrap:normal
+}
+.sampling-ant-design .foreman-workbench .todo-panel .todo-bottom,
+.sampling-ant-design .foreman-workbench .change-panel .todo-bottom{margin-top:4px}
+.sampling-ant-design .foreman-workbench .todo-panel .todo-bottom strong,
+.sampling-ant-design .foreman-workbench .change-panel .todo-bottom strong{
+ font-size:24px;
+ line-height:32px;
+ font-weight:600
+}
+.sampling-ant-design .foreman-workbench .todo-panel .todo-bottom strong{color:var(--ant-text)}
+.sampling-ant-design .foreman-workbench .change-panel .todo-bottom strong{color:var(--ant-error)}
+.sampling-ant-design .foreman-workbench .todo-panel .todo-bottom small,
+.sampling-ant-design .foreman-workbench .change-panel .todo-bottom small{
+ color:var(--ant-text-secondary);
+ font-size:12px;
+ line-height:20px;
+ font-weight:400
+}
+
+/* Sampling and matching tables share one hierarchy and rhythm. */
+.sampling-ant-design .foreman-workbench .sampling-kind-progress,
+.sampling-ant-design .foreman-workbench .matching-stage-table{
+ color:var(--ant-text);
+ font-size:12px;
+ line-height:20px
+}
+.sampling-ant-design .foreman-workbench .sampling-kind-progress th,
+.sampling-ant-design .foreman-workbench .sampling-kind-progress td,
+.sampling-ant-design .foreman-workbench .matching-stage-table th,
+.sampling-ant-design .foreman-workbench .matching-stage-table td{border-color:var(--ant-split)}
+.sampling-ant-design .foreman-workbench .sampling-kind-progress thead th,
+.sampling-ant-design .foreman-workbench .matching-stage-table thead th{
+ height:40px;
+ padding:8px 10px;
+ color:var(--ant-text-secondary);
+ background:var(--ant-fill);
+ font-size:12px;
+ line-height:20px;
+ font-weight:600
+}
+.sampling-ant-design .foreman-workbench .sampling-kind-progress tbody tr,
+.sampling-ant-design .foreman-workbench .matching-stage-table tbody tr{height:48px}
+.sampling-ant-design .foreman-workbench .sampling-kind-progress tbody th,
+.sampling-ant-design .foreman-workbench .matching-stage-table tbody th{
+ padding:8px 12px;
+ color:var(--ant-text-secondary);
+ background:var(--ant-fill);
+ font-size:14px;
+ line-height:22px;
+ font-weight:500
+}
+.sampling-ant-design .foreman-workbench .sampling-kind-progress tbody td,
+.sampling-ant-design .foreman-workbench .matching-stage-table tbody td{padding:8px 10px}
+.sampling-ant-design .foreman-workbench .sampling-kind-progress td button,
+.sampling-ant-design .foreman-workbench .sampling-kind-progress td>strong,
+.sampling-ant-design .foreman-workbench .matching-stage-table td strong{
+ font-size:22px;
+ line-height:30px;
+ font-weight:600
+}
+.sampling-ant-design .foreman-workbench .sampling-kind-progress td button{
+ min-height:30px;
+ padding:0 12px
+}
+
+/* Overdue queues use the same compact data-table treatment. */
+.sampling-ant-design .foreman-workbench .repair-overdue-table{
+ color:var(--ant-text);
+ font-size:12px;
+ line-height:20px
+}
+.sampling-ant-design .foreman-workbench .repair-overdue-table th{
+ height:36px;
+ padding:8px;
+ color:var(--ant-text-secondary);
+ background:var(--ant-fill);
+ font-size:12px;
+ line-height:20px;
+ font-weight:600
+}
+.sampling-ant-design .foreman-workbench .repair-overdue-table tbody tr{height:44px}
+.sampling-ant-design .foreman-workbench .repair-overdue-table td{
+ padding:10px 8px;
+ border-color:var(--ant-split);
+ font-size:12px;
+ line-height:20px
+}
+.sampling-ant-design .foreman-workbench .repair-overdue-table td:first-child{color:var(--ant-primary)}
+.sampling-ant-design .foreman-workbench .repair-overdue-duration{color:var(--ant-error)}
+.sampling-ant-design .foreman-workbench .repair-overdue-empty{
+ color:var(--ant-text-secondary);
+ font-size:12px;
+ line-height:20px
+}
+
+/* Bottom statistics follow the standard card title and spacing scale. */
+.sampling-ant-design .foreman-workbench .workbench-statistics-grid{gap:12px}
+.sampling-ant-design .foreman-workbench .workbench-stat-card,
+.sampling-ant-design .foreman-workbench .workbench-stat-card.repair,
+.sampling-ant-design .foreman-workbench .workbench-stat-card.addition,
+.sampling-ant-design .foreman-workbench .workbench-stat-card.dye-color,
+.sampling-ant-design .foreman-workbench .workbench-stat-card.finished-color{padding:16px}
+.sampling-ant-design .foreman-workbench .workbench-stat-heading{margin:0 0 12px}
+.sampling-ant-design .foreman-workbench .workbench-stat-card .chart-axis-label{font-size:11px}
+.sampling-ant-design .foreman-workbench .repair-combo-chart svg,
+.sampling-ant-design .foreman-workbench .workbench-stat-card.addition .addition-chart svg,
+.sampling-ant-design .foreman-workbench .workbench-stat-card.dye-color .addition-chart svg,
+.sampling-ant-design .foreman-workbench .workbench-stat-card.finished-color .addition-chart svg{height:178px}

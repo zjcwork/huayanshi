@@ -1,233 +1,2304 @@
-import ProductionHome from './ProductionHome';
-import './browser-compat';
-import GlobalQuickQuery from './GlobalQuickQuery';
-import FormulaAuditPage from './FormulaAuditPage';
-import '@ant-design/v5-patch-for-react-19';
-import React,{useState,useEffect} from 'react';
-import {createRoot} from 'react-dom/client';
-import {App as AntApp,ConfigProvider,Button,Input,InputNumber,Select,DatePicker,Table,Tabs,Drawer,Modal,Space,Checkbox,Tag,Tooltip,Descriptions,Badge,Empty,Popconfirm} from 'antd';
-import zhCN from 'antd/locale/zh_CN';
-import {CalendarOutlined,BellOutlined,UserOutlined,DesktopOutlined,SkinOutlined,FileTextOutlined,LikeOutlined,DownOutlined,CloseOutlined,LeftOutlined,ReloadOutlined,FullscreenOutlined,SettingOutlined,ColumnHeightOutlined,BarcodeOutlined,ExperimentOutlined,PlusOutlined,EditOutlined,PrinterOutlined,ArrowUpOutlined,ArrowDownOutlined} from '@ant-design/icons';
-import dayjs from 'dayjs';
-import {initialRecords,progressRecords,copyRecords,queryRecords,workers,formulaRows,bigFormulaRows,type LabRecord} from './data';
-import './styles.css';
-import './query-history-reference.css';
-import DyeProcessReview from './DyeProcessReview';
-import DyeFormulaReview from './DyeFormulaReview';
-import FormulaChangeReview from './FormulaChangeReview';
-import FormulaConfirmationPage from './FormulaConfirmationPage';
-import FormulaConfirmationNewPage from './FormulaConfirmationNewPage';
-import DyeSchedule from './DyeSchedule';
-import MatchingDetail from './MatchingDetail';
-import BadFormulas from './BadFormulas';
-import SamplingPage from './SamplingPage';
-import Workbench from './Workbench';
-import WorkflowGuide from './WorkflowGuide';
-import WarehouseConfirmation from './WarehouseConfirmation';
-import WorkshopReductionRate from './WorkshopReductionRate';
-import AuxiliaryRules from './AuxiliaryRules';
-import CardOpeningReview from './CardOpeningReview';
-import CopyFormulaModal from './CopyFormulaModal';
-import QueryFormulaEditor,{type QueryFormulaEdit} from './QueryFormulaEditor';
-import QueryFormulaModal,{queryFormulaSnapshot,type QueryFormulaDetail} from './QueryFormulaModal';
-import DyeFormulaTable from './DyeFormulaTable';
-import type {Formula} from './dye-formula-model';
-import type {WorkbenchTarget} from './workbench-navigation';
-import {matchesQueryHistory,type QueryHistoryFilters} from './query-history-filters';
-const orderGroups=[{title:'量产订单管理',pages:['量产订单','订单信息审核','订单工艺审核','订单颜色审核','计划订单']},{title:'预打样单管理',pages:['预打样单','预打样颜色审核']}];
-const productionPlanMenus=['染缸计划','发货计划','前道计划','定型计划','半检计划','后整理计划','成检计划'];
-const productionPages=[...productionPlanMenus,'生产主页','染色工艺审核','染色配方审核','染色核算','核算查询','染缸计划','带布通知','进行中','待验收','待确认','验收记录','带布查询'];
-const pageLabel=(name:string)=>name==='配方查询'?'配方履历':name;
-const menus=['打样','抄样','配方审核','配方变更','配方确认','配方查询','打样进度'];
-const productionFormulaMenus=['对样','三车间减量率','进仓确认','助剂规则'];
-const initialTabs=['试样管理工作台','工艺分析','对样结果查询','半检带布查询','半检对样到站','成品对样到站','带布通知','带布到站统计','试样在制品库存','进行中','待验收','预打样单'];
-const copyHistoryRecords:LabRecord[]=queryRecords.slice(0,7).map((record,version)=>({
- ...record,order:'锦丰903',colorNo:'薄荷绿',product:'短纤与棉',color:'薄荷绿',depth:'浅色',ratio:8,processCard:`Y260630${3701+version*3}`,formula:`C08260720216v${[0,1,2,3,3,3,4][version]}`,
- formulaStatus:(version===6?'未确认':version===5?'不可用':'已确认') as LabRecord['formulaStatus'],formulaAvailable:version!==5&&version!==6,formulaDescription:record.key==='q1'?'头缸':record.formulaDescription,
-})).sort((a,b)=>b.created.localeCompare(a.created));
-const copyUsageRows=(source:LabRecord)=>[source,...copyHistoryRecords.slice(0,4).filter(record=>record.key!==source.key)];
-const newQueryHistoryFilters=():QueryHistoryFilters=>({order:'',colorNo:'',processCard:'',formula:'',dmNo:'',formulaType:'大样'});
-const newQueryHistoryDates=()=>[dayjs('2023-10-07'),dayjs('2026-10-07')];
-function Main(){
- const {message}=AntApp.useApp();
- const [queryInlineEdit,setQueryInlineEdit]=useState<{formulaNo:string;formula:Formula}|null>(null);
- const [queryEditing,setQueryEditing]=useState<LabRecord|null>(null);
- const [queryEdits,setQueryEdits]=useState<Record<string,QueryFormulaEdit>>(()=>{try{return JSON.parse(localStorage.getItem('lab-query-formula-edits')||'{}')}catch{return {}}});
- const [queryFormulaDetail,setQueryFormulaDetail]=useState<QueryFormulaDetail|null>(null);
- const [historyFormulaPreview,setHistoryFormulaPreview]=useState<{number:string;formula:Formula;previousNumber?:string;previous?:Formula;confirmed:boolean;applicant:string;appliedAt:string;reason:string;confirmedBy?:string;confirmedAt?:string}|null>(null);
- const [queryHistoryOpen,setQueryHistoryOpen]=useState(false);
- const [queryDetailTab,setQueryDetailTab]=useState<'formula'|'cards'>('formula');
- const [queryAccountingCard,setQueryAccountingCard]=useState<string|null>(null);
- const [auditFormulaEdits,setAuditFormulaEdits]=useState<Record<string,typeof bigFormulaRows>>({});
- const [auditEditingKey,setAuditEditingKey]=useState<string|null>(null);
- const [auditEditReductionRate,setAuditEditReductionRate]=useState(10);
- const [auditEditBathRatio,setAuditEditBathRatio]=useState(6.5);
- const [queryUsageCard,setQueryUsageCard]=useState('');
- const [querySelectedFormula,setQuerySelectedFormula]=useState('');
- const [queryBathRatio,setQueryBathRatio]=useState(queryRecords[0].ratio);
- const [queryDateOpen,setQueryDateOpen]=useState(false);
- const [queryFilters,setQueryFilters]=useState<QueryHistoryFilters>(newQueryHistoryFilters);
- const [appliedQueryFilters,setAppliedQueryFilters]=useState<QueryHistoryFilters>(newQueryHistoryFilters);
- const [queryFilterDates,setQueryFilterDates]=useState<any>(newQueryHistoryDates);
- const [appliedQueryDates,setAppliedQueryDates]=useState<any>(newQueryHistoryDates);
- const [copyFormulaDetail,setCopyFormulaDetail]=useState<LabRecord|null>(null);
- const [page,setPage]=useState('试样管理工作台'),[tabs,setTabs]=useState(initialTabs),[collapsed,setCollapsed]=useState(false),[section,setSection]=useState('配方'),[module,setModule]=useState('试样管理');
- const [orderGroupsOpen,setOrderGroupsOpen]=useState([true,true]);
- const [records,setRecords]=useState<LabRecord[]>(()=>{try{return JSON.parse(localStorage.getItem('lab-records')||'null')||initialRecords}catch{return initialRecords}});
- const [keyword,setKeyword]=useState(''),[colorKeyword,setColorKeyword]=useState(''),[applied,setApplied]=useState(['','']),[status,setStatus]=useState('待审核'),[worker,setWorker]=useState<string>(),[dates,setDates]=useState<any>([dayjs('2026-08-07'),dayjs('2026-09-07')]),[filterMeta,setFilterMeta]=useState<any>({}),[category,setCategory]=useState('0');
- const [selected,setSelected]=useState<React.Key[]>([]),[activeRow,setActiveRow]=useState<LabRecord>(queryRecords[0]),[detail,setDetail]=useState<LabRecord|null>(null),[detailKind,setDetailKind]=useState(''),[detailTab,setDetailTab]=useState('配方'),[editing,setEditing]=useState(false);
- const [formula,setFormula]=useState(()=>{try{return JSON.parse(localStorage.getItem('lab-formula')||'null')||formulaRows}catch{return formulaRows}}),[draft,setDraft]=useState(formula),[scanOpen,setScanOpen]=useState(false),[scan,setScan]=useState(''),[matched,setMatched]=useState(false),[shift,setShift]=useState('甲班'),[historySelected,setHistorySelected]=useState(queryRecords[0]);
- useEffect(()=>{document.querySelector('.page-tabs>div.active')?.scrollIntoView({block:'nearest',inline:'nearest'})},[page]);
- const navigate=(name:string)=>{if(orderGroups.some(g=>g.pages.includes(name))){setModule('订单管理');setOrderGroupsOpen(previous=>previous.map((open,i)=>open||orderGroups[i].pages.includes(name)))}else if(productionPages.includes(name)){setModule('生产管理')}else if(name==='开卡审核'){setModule('试样管理');setSection('配方推荐')}else if(productionFormulaMenus.includes(name)){setModule('试样管理');setSection('生产配方')}else if(menus.includes(name)||name==='试样管理工作台'||name==='流程说明'){setModule('试样管理');setSection('配方')}if(name==='抄样'){setActiveRow(copyRecords[0]);setHistorySelected(copyHistoryRecords[0]);setDetailKind('抄样');setDetail(null)}if(name==='配方查询'){setActiveRow(queryRecords[0]);setHistorySelected(queryRecords[0])}setPage(name);setTabs(t=>t.includes(name)?t:[...t,name]);setKeyword('');setColorKeyword('');setApplied(['','']);setCategory('0');setSelected([]);setFilterMeta({});setStatus(name==='打样进度'?'进行中':name==='配方查询'?'大样':'待审核')};
- const openWorkflowTab=(name:string)=>{setTabs(current=>{if(current.includes(name))return current;const next=[...current];next.splice(Math.max(0,current.indexOf(page)+1),0,name);return next});navigate(name)};
- const startMatching=()=>{if(!scan.trim()){message.warning('请输入流程卡号');return}setScan(scan.trim());setMatched(true);setScanOpen(false)};
- const openWorkbenchPage=(target:WorkbenchTarget)=>{if(target.page==='配方确认'||target.page==='配方审核'||target.page==='配方变更')navigate(target.page);else if(target.page==='试样任务跟踪')navigate('打样进度');else message.info(`${target.page}入口已预留`)};
- const applyQueryHistoryFilters=()=>{setAppliedQueryFilters({...queryFilters});setAppliedQueryDates(queryFilterDates?[...queryFilterDates]:null)};
- const resetQueryHistoryFilters=()=>{const nextFilters=newQueryHistoryFilters(),nextDates=newQueryHistoryDates();setQueryFilters(nextFilters);setAppliedQueryFilters({...nextFilters});setQueryFilterDates(nextDates);setAppliedQueryDates([...nextDates])};
- const persist=(next:LabRecord[])=>{setRecords(next);localStorage.setItem('lab-records',JSON.stringify(next))};
- const openDetail=(row:LabRecord,kind:string)=>{setDetail(row);setDetailKind(kind);setDetailTab('配方');if(kind==='抄样')setHistorySelected(copyHistoryRecords[0])};
- const audit=(row:LabRecord,pass:boolean)=>{persist(records.map(r=>r.key===row.key?{...r,status:pass?'已通过':'未通过'}:r));message.success(`${row.order} 配方${pass?'审核通过':'已退回'}`);setDetail(null)};
- const toolbar=<Space size={14} className="table-tools"><Tooltip title="全屏"><FullscreenOutlined onClick={()=>{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen?.()}}/></Tooltip><Tooltip title="刷新"><ReloadOutlined onClick={()=>{setApplied(['','']);setKeyword('');message.success('数据已刷新')}}/></Tooltip><Tooltip title="紧凑表格"><ColumnHeightOutlined onClick={()=>document.body.classList.toggle('comfortable')}/></Tooltip><Tooltip title="恢复默认视图"><SettingOutlined onClick={()=>{setSelected([]);setFilterMeta({});message.success('已恢复默认视图')}}/></Tooltip></Space>;
- const search=(simple=false,query=false)=><div className={'filter-bar '+(simple?'simple':'')}>
- {!simple&&<span>{query?'订字：':'查询内容：'}</span>}<Input aria-label="订字搜索" placeholder={simple?'搜索订字':query?'请输入订字':'搜索订字/流程卡号/配方号'} value={keyword} onChange={e=>setKeyword(e.target.value)} onPressEnter={()=>{setApplied([keyword,colorKeyword]);setFilterMeta({status,worker,dates})}} style={{width:query?120:220}}/>
- {query&&<span>色号：</span>}<Input aria-label="色号搜索" placeholder="搜索色号/DM编号" value={colorKeyword} onChange={e=>setColorKeyword(e.target.value)} style={{width:160}}/>
- {!simple&&!query&&<><span>{page==='打样进度'?'任务状态：':'审核状态：'}</span><Select value={status} onChange={setStatus} style={{width:150}} options={(page==='打样进度'?['全部','进行中','已完成','已关闭']:['全部','待审核','已通过','未通过']).map(value=>({value,label:value}))}/></>}
- {page==='打样进度'&&<><span>打样员：</span><Select allowClear placeholder="请选择" value={worker} onChange={setWorker} style={{width:130}} options={workers.map(value=>({value,label:value}))}/></>}
- {!simple&&<><span>创建时间：</span><DatePicker.RangePicker value={dates} onChange={setDates} style={{width:260}}/></>}
- {query&&<><span>配方类型：</span><Select value={status==='待审核'?'大样':status} onChange={setStatus} options={['大样','小样','全部'].map(value=>({value,label:value}))} style={{width:90}}/></>}
- <div className="filter-spacer"/><Button type="primary" onClick={()=>{setApplied([keyword,colorKeyword]);setFilterMeta({status,worker,dates})}}>查 询</Button><Button onClick={()=>{setKeyword('');setColorKeyword('');setApplied(['','']);setFilterMeta({});setWorker(undefined);setDates([dayjs('2026-08-07'),dayjs('2026-09-07')])}}>重 置</Button></div>;
- const filter=(rows:LabRecord[])=>rows.filter(r=>(r.order+r.formula+'Y2606303701'+(['抄样','配方查询'].includes(page)?r.colorNo:'')).toLowerCase().includes(applied[0].toLowerCase())&&r.colorNo.toLowerCase().includes(applied[1].toLowerCase())&&(!filterMeta.worker||r.worker===filterMeta.worker)&&(!filterMeta.status||page==='配方查询'||['全部','大样','小样'].includes(filterMeta.status)||r.status===filterMeta.status)&&(!filterMeta.dates?.[0]||dayjs(r.created).isAfter(filterMeta.dates[0].startOf('day').subtract(1,'second')))&&(!filterMeta.dates?.[1]||dayjs(r.created).isBefore(filterMeta.dates[1].endOf('day'))));
- const col=(title:string,dataIndex:string,width?:number)=>({title,dataIndex,width,ellipsis:true});
- const colorCol={title:'颜色',dataIndex:'color',width:95,render:(v:string,r:LabRecord)=><span className="color-label"><i style={{background:r.hex}}/>{v}</span>};
- const pagination={defaultPageSize:20,showSizeChanger:true,pageSizeOptions:[10,20,100],showTotal:(n:number)=>`共 ${n} 条`,size:'small' as const};
- const queryList=queryRecords.filter(row=>matchesQueryHistory(row,{...appliedQueryFilters,start:appliedQueryDates?.[0]?.format('YYYY-MM-DD'),end:appliedQueryDates?.[1]?.format('YYYY-MM-DD')}));
- const queryActive=queryList.find(row=>row.key===activeRow.key)??queryList[0]??queryRecords[0];
- const queryBathOptions=Array.from(new Set([queryActive.ratio,4,6])).filter(ratio=>ratio!==5).sort((left,right)=>left-right);
- const queryFormulaBase=queryActive.formula.replace(/^C\d{2}/,`C${String(queryBathRatio).padStart(2,'0')}`);
- const halfMatchDirections=['正常','偏红','偏蓝','正常','偏黄','正常','偏红'],halfMatchDepths=['正常','偏浅','偏深','正常','偏浅','正常','偏浅'];
- const finishedMatchDirections=['正常','正常','偏蓝','正常','正常','正常','偏红'],finishedMatchDepths=['正常','正常','偏深','正常','正常','正常','偏浅'];
- const queryHistoryReasons=queryBathRatio===4?['初始配方','降低助剂用量，改善手感','调整灰度，减少红色染料','优化升温曲线与保温时间','确认稳定生产配方']:['初始配方','修正色光，增加蓝色染料','降低红色染料比例','延长保温并校正 pH','优化主染料比例'];
- const queryLargeUsages=[4,3,3,3,2,1,0].map((version,index)=>({key:index,version,formula:queryFormulaBase.replace(/v\d+$/,`v${version}`),card:`Y260630${3701+Math.max(0,queryRecords.findIndex(record=>record.key===queryActive.key))*30+(6-index)*3}`,bath:queryBathRatio,addition:version===0?3:version===2?2:0,defect:version===0?'色差':version===2?'色光偏红':'—',reason:queryHistoryReasons[version],halfDirection:halfMatchDirections[index],halfDepth:halfMatchDepths[index],finishedDirection:finishedMatchDirections[index],finishedDepth:finishedMatchDepths[index],created:dayjs(queryActive.created).add(6-index,'day').format('YYYY-MM-DD HH:mm'),confirmed:version!==4,available:version===3,isSample:false}));
- const querySmallUsage={key:'sample',version:0,formula:queryFormulaBase.replace(/^C/,'A').replace(/v\d+$/,'v0'),card:`A-SAMPLE-${queryActive.key}`,bath:queryBathRatio,addition:0,defect:'—',reason:'小样确认配方',halfDirection:'正常',halfDepth:'正常',finishedDirection:'正常',finishedDepth:'正常',created:dayjs(queryActive.created).subtract(1,'day').format('YYYY-MM-DD HH:mm'),confirmed:true,available:false,isSample:true};
- const queryUsages=[...queryLargeUsages,querySmallUsage];
- const queryVersionRows=queryUsages.filter((row,index,rows)=>rows.findIndex(candidate=>candidate.formula===row.formula)===index);
- const selectedQueryUsage=queryUsages.find(row=>row.formula===querySelectedFormula)??queryUsages.find(row=>row.card===queryUsageCard)??queryUsages.find(row=>row.available)??queryUsages[0];
- const selectedFormulaCards=selectedQueryUsage.isSample?[]:queryUsages.filter(row=>!row.isSample&&row.formula===selectedQueryUsage.formula);
- const accountingUsage=queryUsages.find(row=>row.card===queryAccountingCard);
- const queryRecord={...queryActive,formula:selectedQueryUsage.formula,ratio:queryBathRatio};
- const queryVersion=Number(queryRecord.formula.match(/v(\d+)$/)?.[1]??0);
- const querySnapshot=queryFormulaSnapshot(queryRecord.ratio,queryVersion);
- const queryFormula=queryEdits[queryRecord.formula]??(queryVersion===0?queryEdits[queryActive.key]:undefined)??{bath:querySnapshot.bath??queryRecord.ratio,rows:querySnapshot.rows.map(row=>({...row,ratio:row.ratio??0,algorithm:row.algorithm??'布重',unit:row.unit??'克/市斤'}))};
- const queryDisplayFormula:Formula={bath:queryFormula.bath,rows:queryFormula.rows.map(row=>({...row,name:'name' in row?String(row.name??''):'',process:row.process??'',processName:row.processName??'',ph:row.ph??'',algorithm:row.algorithm??'布重',unit:row.unit??'克/市斤'}))};
- const startQueryInlineEdit=()=>setQueryInlineEdit({formulaNo:queryRecord.formula,formula:structuredClone(queryDisplayFormula)});
- const saveQueryInlineEdit=()=>{if(!queryInlineEdit)return;const value=queryInlineEdit.formula;if(!value.bath||!value.rows.length||value.rows.some(row=>!row.code.trim()||row.ratio===null||row.ratio<0)){message.warning('请填写有效的浴比、染助剂和比例');return}const previous=queryEdits[queryInlineEdit.formulaNo];const saved:QueryFormulaEdit={bath:value.bath,rows:value.rows.map(row=>({key:row.key,stage:row.stage,code:row.code,ratio:row.ratio??0,algorithm:row.algorithm??'布重',unit:row.unit??'克/市斤',process:row.process,processName:row.processName,ph:row.ph})),reason:previous?.reason??'页面编辑',applicant:'水木',updatedAt:new Date().toISOString()};const next={...queryEdits,[queryInlineEdit.formulaNo]:saved};localStorage.setItem('lab-query-formula-edits',JSON.stringify(next));setQueryEdits(next);setQueryInlineEdit(null);message.success('配方已保存')};
- const accountingFormulaRows=[
-  ['1','A52',2.25,'布重','克/升','130°C*30′','3.9-4.5','',''],
-  ['1','A35',4,'布重','克/升','','','',''],
-  ['1','A5',1.32,'布重','克/升','','','',''],
-  ['1','X1',0.8,'布重','克/升','','','',''],
-  ['1','X2',2.75,'布重','克/升','','','',''],
-  ['1','X3',1,'布重','克/升','','','',''],
-  ['1','P50-1',6.4,'水重','百分比','','','',''],
-  ['1','P2',1,'水重','百分比','','','',''],
-  ['1','P53',1,'水重','百分比','','','',''],
-  ['2','B18',3.2,'布重','克/升','60°C*60′\n75°C*10′\n409','10.8-11.8',0.1,'60*20'],
-  ['2','B2',4.3,'布重','克/升','','','',''],
-  ['2','B10',3,'布重','克/升','','',0.125,''],
-  ['2','P13',0.4,'水重','百分比','','','',''],
-  ['2','P2',0.2,'水重','百分比','','','',''],
-  ['2','P1',0,'水重','百分比','','','',''],
-  ['2','P7-1',2.44,'水重','百分比','','','',''],
-  ['2','B29','', '', '', '', '',0.05,''],
- ].map(([stage,code,ratio,algorithm,unit,process,ph,addition,additionProcess],index)=>({key:`accounting-${index}`,stage,code,ratio,algorithm,unit,process,ph,addition,additionProcess,groupStart:index===0||index===9,groupSize:index<9?9:8}));
- const accountingMerge=(row:(typeof accountingFormulaRows)[number])=>({rowSpan:row.groupStart?row.groupSize:0});
- const renderMatchResult=(direction:string,depth:string)=>direction==='正常'&&depth==='正常'?<Tag color="green">OK</Tag>:<Space size={4}><Tag color={direction.includes('红')?'red':direction.includes('黄')?'gold':'blue'}>{direction}</Tag><Tag className={`query-match-depth ${depth.includes('深')?'deep':''}`}>{depth.includes('深')?'↑':'↓'} {depth}</Tag></Space>;
- const queryHistoryCardRows=queryUsages.map((row,index,all)=>({...row,groupStart:index===0||all[index-1]?.formula!==row.formula,groupSize:all.filter(candidate=>candidate.formula===row.formula).length}));
- const queryMetadata=Object.entries({订字:queryActive.order,色号:queryActive.colorNo,品名:queryActive.product,颜色深浅:queryActive.depth,颜色:queryActive.color,染料类别:queryActive.dyeCategory||'—',客户:queryActive.customer||'—',业务员:queryActive.salesperson||'—',要求浴比:`1:${queryActive.ratio}`,白坯克重:queryActive.greigeWeight||'—',白坯门幅:queryActive.greigeWidth||'—',对色光源:queryActive.colorLight||'—',订单类型:queryActive.orderCategory||'—',下单时间:dayjs(queryActive.created).format('YY-MM-DD HH:mm')});
- const formulaTable=(big=false,editable=false,auditRows?:typeof bigFormulaRows,reductionRate=0,onOpenReduction?:()=>void)=>{
- const rows=editable?draft:big?(auditRows??bigFormulaRows):page==='配方查询'?queryFormula.rows:formula;
- const merge=(i:number)=>({rowSpan:page==='配方查询'?1:big?(i===0?5:i===5?7:0):(i===0?rows.length:0)});
- if(big&&auditEditingKey){
-  const effectiveReductionRate=reductionRate||auditEditReductionRate;
-  const patchAuditRow=(key:string,value:Record<string,unknown>)=>setDraft((current:any[])=>current.map((row:any)=>row.key===key?{...row,...value}:row));
-  const addAuditRow=(stage=1)=>setDraft((current:any[])=>[...current,{key:crypto.randomUUID(),code:'',ratio:0,stage,algorithm:'布重',unit:'克/市斤'}]);
-  const saveAuditEdit=()=>{setAuditFormulaEdits(previous=>({...previous,[auditEditingKey]:draft}));setAuditEditingKey(null);setEditing(false);message.success('配方已保存')};
-  return <div className="audit-formula-editor">
-   <div className="audit-formula-editor-actions"><span className="formula-audit-sizing-rate">含浆率 <b>不用扣</b></span><Button type="primary" onClick={onOpenReduction}>引用减量率</Button><Button type="primary" onClick={saveAuditEdit}>保 存</Button><Button onClick={()=>{setEditing(false);setAuditEditingKey(null)}}>取 消</Button></div>
-   <Table bordered size="small" pagination={false} rowKey="key" tableLayout="fixed" scroll={{x:1500}} dataSource={draft} columns={[
-    {title:'操作',width:135,align:'center',render:(_:unknown,row:any,index:number)=><Space size={10}><Button type="link" onClick={()=>addAuditRow(row.stage)}>增</Button>{index===draft.length-1&&<Button type="link" onClick={()=>addAuditRow(Number(row.stage)+1)}>增阶段</Button>}<Button type="link" danger onClick={()=>setDraft((current:any[])=>current.filter((item:any)=>item.key!==row.key))}>删</Button></Space>},
-    {title:'浴比',width:75,align:'center',render:()=> <InputNumber min={1} value={auditEditBathRatio} onChange={value=>setAuditEditBathRatio(value??8)}/>,onCell:(_:unknown,index?:number)=>({rowSpan:index===0?draft.length:0})},
-    {title:'阶段',width:90,align:'center',render:(_:unknown,row:any)=><InputNumber min={1} value={row.stage} onChange={value=>patchAuditRow(row.key,{stage:value??1})}/>},
-    {title:'染助剂代码',width:130,align:'center',render:(_:unknown,row:any)=><Select showSearch value={row.code} onChange={value=>patchAuditRow(row.key,{code:value})} options={['A1','A12','A14','P2','P103','A52','A35','A5'].map(value=>({value,label:value}))}/>},
-    {title:'原比例',width:105,align:'center',render:(_:unknown,row:any)=><InputNumber min={0} precision={3} value={row.ratio} onChange={value=>patchAuditRow(row.key,{ratio:value??0})}/>},
-    {title:<div className="audit-reduction-heading"><span>扣减</span><InputNumber min={0} max={99} value={effectiveReductionRate} onChange={value=>setAuditEditReductionRate(value??0)}/></div>,width:115,align:'center',render:(_:unknown,row:any)=>row.algorithm==='布重'?Number((row.ratio*(1-effectiveReductionRate/100)).toFixed(3)):row.ratio},
-    {title:'算法',width:120,align:'center',render:(_:unknown,row:any)=><Select value={row.algorithm} onChange={value=>patchAuditRow(row.key,{algorithm:value,unit:value==='布重'?'克/市斤':'克/升'})} options={['布重','水重'].map(value=>({value,label:value}))}/>},
-    {title:'单位',width:145,align:'center',render:(_:unknown,row:any)=><Select value={row.unit} onChange={value=>patchAuditRow(row.key,{unit:value})} options={['克/市斤','克/升'].map(value=>({value,label:value}))}/>},
-    {title:'工艺',width:330,align:'center',render:(_:unknown,row:any)=><div className="audit-process-fields"><Select allowClear placeholder="请选择工艺" value={row.process} onChange={value=>patchAuditRow(row.key,{process:value})} options={[{value:"04 - 130°C*20′",label:"04 - 130°C*20′"},{value:"49 - 60°C*70′",label:"49 - 60°C*70′"}]}/><Input value={row.processName??''} placeholder="工艺要求" onChange={event=>patchAuditRow(row.key,{processName:event.target.value})}/></div>},
-    {title:'pH',width:125,align:'center',render:(_:unknown,row:any)=><Input value={row.ph??''} placeholder="请输入" onChange={event=>patchAuditRow(row.key,{ph:event.target.value})}/>},
-   ]}/>
-  </div>;
- }
- return <Table className="formula-table" bordered size="small" pagination={false} dataSource={rows} columns={[
- {title:'浴比',width:75,render:()=>big?'1: 6.5':`1: ${page==='配方查询'?queryFormula.bath:(detailKind==='抄样'||page==='抄样')?(copyHistoryRecords.find(record=>record.key===historySelected.key)?.ratio??8):historySelected.ratio}`,onCell:(_:any,i?:number)=>({rowSpan:i===0?rows.length:0})},
- {title:'阶段',dataIndex:'stage',width:80,onCell:(_:any,i?:number)=>merge(i||0)},col('染助剂代码','code',120),
- {title:big?'大货比例':'比例',dataIndex:'ratio',width:100,render:(v:number,r:any)=>editable?<InputNumber min={0} value={v} onChange={n=>setDraft(draft.map((x:any)=>x.key===r.key?{...x,ratio:n??0}:x))}/>:v},
- ...(big?[{title:`减量率${reductionRate}% 比例`,dataIndex:'ratio',width:110,render:(value:number)=>Number((value*(1-reductionRate/100)).toFixed(4))}]:[]),col('算法','algorithm',110),col('单位','unit',120),
- {title:'工艺',render:(_:any,r:any)=>page==='配方查询'?([r.process,r.processName].filter(Boolean).join(' - ')||'—'):r.stage===1?"04 - 130°C*20′":"49 60°C*70′ / 09 75°C*10′",onCell:(_:any,i?:number)=>merge(i||0)},
- {title:'pH',width:115,render:(_:any,r:any)=>page==='配方查询'?(r.ph||'—'):r.stage===1?'4.8-5.2':'10.8-11.8',onCell:(_:any,i?:number)=>merge(i||0)}]}/>};
- const copyDetails=(showHeading=true,source:LabRecord=activeRow)=><>{showHeading&&<div className="section-heading copy-history-heading"><div className="copy-history-title"><strong>配方履历</strong></div><Button type="primary" onClick={()=>message.success('已查询最新配方履历')}>查询</Button></div>}<Table className="copy-history-table" bordered size="small" pagination={false} scroll={{y:205,x:1100}} dataSource={copyUsageRows(source)} onRow={r=>({onClick:()=>setHistorySelected(r)})} rowClassName={r=>r.key===historySelected.key?'active-row':''} columns={[col('订字','order'),col('品名','product'),col('色号','colorNo'),{title:'配方号',dataIndex:'formula',width:150,ellipsis:true,render:(value:string,row:LabRecord)=>{const status=row.formulaStatus??(row.formulaAvailable===false?'未确认':null),badge=status==='已确认'?null:status;return <span className="copy-history-formula">{value}{badge&&<sup className={'copy-formula-unconfirmed '+(badge==='不可用'?'is-unavailable':'')}>{badge}</sup>}</span>}},{title:'加料次数',width:80,align:'center',render:(_:unknown,row:LabRecord)=>`${row.additionCount??0}次`},{title:'不良',width:120,align:'center',render:()=>'-'},{title:'浴比',dataIndex:'ratio',width:65,render:(value:number)=>`1:${value}`},{title:'创建/更改时间',dataIndex:'created',width:150},{title:'详情',width:60,render:(_:any,r:LabRecord)=><a onClick={event=>{event.stopPropagation();setHistorySelected(r);setCopyFormulaDetail(r)}}>详情</a>}]}/><h4>配方详情</h4>{formulaTable()}</>;
- const copyPage=()=>{const rows=filter(copyRecords);const recommendedBath=[101,62,7,8],referenceColors=['锦丰903 / 薄荷绿','芹王AE / 青绿','阳光1978-1 / 橄榄绿','国张711 / 驼色'];return <section className="panel copy-table-page"><div className="copy-table-filters"><Input aria-label="抄样订字搜索" placeholder="搜索订字" value={keyword} onChange={e=>setKeyword(e.target.value)} onPressEnter={()=>{setApplied([keyword,colorKeyword]);setFilterMeta({})}}/><Input aria-label="抄样色号搜索" placeholder="搜索色号/DM编号" value={colorKeyword} onChange={e=>setColorKeyword(e.target.value)} onPressEnter={()=>{setApplied([keyword,colorKeyword]);setFilterMeta({})}}/><span/><Button type="primary" onClick={()=>{setApplied([keyword,colorKeyword]);setFilterMeta({})}}>查 询</Button><Button onClick={()=>{setKeyword('');setColorKeyword('');setApplied(['','']);setFilterMeta({})}}>重 置</Button></div><div className="copy-table-tools">{toolbar}</div><Table<LabRecord> className="copy-main-table" tableLayout="fixed" rowKey="key" size="small" bordered pagination={{...pagination,pageSize:100}} dataSource={rows} onRow={row=>({onClick:()=>{setActiveRow(row);openDetail(row,'抄样')}})} columns={[{title:'序号',width:60,align:'center',render:(_,__,index)=>index+1},{title:'订字',dataIndex:'order',width:130,sorter:(a,b)=>a.order.localeCompare(b.order,'zh-CN')},{title:'色号',dataIndex:'colorNo',width:130},{title:'参考订字色号',width:180,ellipsis:true,render:(_,row)=>referenceColors[copyRecords.findIndex(item=>item.key===row.key)]??'—'},{title:'品名',dataIndex:'product',width:150},{title:'颜色',dataIndex:'color',width:130,render:(value:string,row)=><span className="color-label"><i style={{background:row.hex}}/>{value}</span>},{title:'颜色深浅',dataIndex:'depth',width:110},{title:'推荐浴比',width:100,align:'center',render:(_,row)=>`1:${recommendedBath[copyRecords.findIndex(item=>item.key===row.key)]??row.ratio}`},{title:'创建时间',dataIndex:'created',width:155,sorter:(a,b)=>a.created.localeCompare(b.created)},{title:'要求交期',width:155,sorter:(a,b)=>a.due.localeCompare(b.due),render:(_,row)=>dayjs(row.created).add(2,'day').format('YYYY-MM-DD HH:mm')},{title:'是否超时',width:110,render:(_,row)=>`超时${[20.9,33.3,99,12.6][copyRecords.findIndex(item=>item.key===row.key)]??0}天`}]}/></section>};
- const listPage=()=>{const isCopy=page==='抄样',isProgress=page==='打样进度',isChange=page==='配方变更';let data=isCopy?copyRecords:isProgress?progressRecords:records;if(category!=='0')data=category==='3'?[{...data[0],key:'pre',type:'预打样'}]:[];if(isChange)data=records.filter(r=>r.status==='未通过');const columns=isCopy?[{title:'序号',width:60,render:(_:any,__:any,i:number)=>i+1},{...col('订字','order',150),sorter:(a:LabRecord,b:LabRecord)=>a.order.localeCompare(b.order)},col('色号','colorNo',130),col('品名','product',160),col('颜色','color',110),col('颜色深浅','depth',110),{title:'订单浴比',render:(_:any,r:LabRecord)=>`1:${r.ratio}`,width:100},col('创建时间','created',160),{title:'要求交期',width:155,render:(_:any,r:LabRecord)=>`2026-${r.due}`},{title:'是否超时',width:100,render:(_:any,__:any,i:number)=>`超时${[4.8,17.1,18.2,99][i]}天`}]:isProgress?[
- {title:'序号',width:55,render:(_:any,__:any,i:number)=>i+1},col('订字','order',130),col('品名','product',120),col('任务类型','type',80),colorCol,col('颜色深浅','depth',90),{title:'是否加急',width:80,render:()=>'-'},col('创建时间','created',140),{title:'是否超时',width:100,render:(_:any,__:any,i:number)=>`超时${[15.2,8.2,10.2,13.1,13.1,98.8][i]}天`},col('任务状态','status',90),col('色号','colorNo',100),{title:'流程卡号',width:100,render:()=>'-'},{title:'要求交期',dataIndex:'due',width:100,render:(v:string)=><span className="red">{v}</span>},col('枪数','round',60),{title:'操作',width:70,render:(_:any,r:LabRecord)=><Button type="link" onClick={()=>openDetail(r,'进度')}>详情</Button>}]:[
- {title:'序号',width:55,render:(_:any,__:any,i:number)=>i+1},col('订字','order',150),col('色号','colorNo',140),col('配方号','formula',130),{title:'配方类型',width:90,render:()=>isChange?'变更':'正常'},col('品名','product',170),{title:'染料类型',width:90,render:()=> '活性'},colorCol,{title:'对色光源',width:90,render:()=>'-'},col('分配时间','created',150),{title:'打样完成时间',width:155,render:()=> '2026-08-14 14:56:17'},col('打样员','worker',95),{title:'操作',fixed:'right' as const,width:155,render:(_:any,r:LabRecord)=><Space size={6}><a className="red" onClick={e=>{e.stopPropagation();audit(r,false)}}>未通过</a><a onClick={e=>{e.stopPropagation();window.print()}}>打印</a><a onClick={e=>{e.stopPropagation();audit(r,true)}}>通过</a></Space>}];return <>{search(isCopy)}<section className="panel list-panel"><div className="list-heading">{isCopy?<div/>:<Tabs activeKey={category} onChange={setCategory} items={(isProgress?['大货(6)','预打样(25)','回修(4)','复样(0)']:['打样 (12)','抄样(0)','回修(0)','预打样(1)']).map((label,i)=>({key:String(i),label}))}/>}<Space>{isProgress&&<><Button disabled={!selected.length} onClick={()=>message.success('带布通知已发起')}>发起带布</Button><Button disabled={!selected.length} onClick={()=>{Modal.confirm({title:'关闭所选任务？',content:'关闭后可在任务状态中查看。',onOk:()=>{progressRecords.forEach(r=>{if(selected.includes(r.key))r.status='已关闭'});setSelected([]);message.success('所选任务已关闭')}})}}>关闭任务</Button><Button disabled={!selected.length} onClick={()=>message.success('所选任务已标记加急')}>加急</Button></>}{toolbar}</Space></div><Table size="small" columns={columns} dataSource={filter(data)} pagination={pagination} scroll={{x:isCopy?1100:isProgress?1450:1660}} rowSelection={isCopy?undefined:{selectedRowKeys:selected,onChange:setSelected}} onRow={r=>({onClick:()=>{setActiveRow(r);openDetail(r,isCopy?'抄样':isProgress?'进度':'审核')}})} rowClassName={r=>r.key===activeRow.key?'active-row':''}/>{isCopy&&<div className="table-hint">点击记录查看历史配方与配方详情</div>}</section></>};
- const queryHistoryDetail=queryList.length?<>
-  <div className="query-history-reference-title"><strong>{queryActive.order}　{queryActive.colorNo}</strong></div>
-  <h3 className="query-history-reference-section">流程卡详情</h3>
-  <Descriptions className="query-history-reference-details" bordered size="small" column={3} items={[
-   {key:'base',label:'基础信息',children:[queryActive.processCard||queryUsages[0]?.card||'—',queryActive.order,queryActive.product].join(' | ')},
-   {key:'color',label:'颜色信息',children:[queryActive.colorNo,queryActive.color,queryActive.depth].join(' | ')},
-   {key:'greige',label:'白坯信息',children:`门幅${queryActive.greigeWidth||'150cm'} | 克重${queryActive.greigeWeight||'200g'}`},
-   {key:'bad',label:'不良信息',children:'— | — | —'},
-   {key:'meters',label:'米数信息',children:'预配1匹 | 实配1匹 | 实配100米'},
-   {key:'finished',label:'成品要求',children:'门幅无要求 | 克重无要求'},
-   {key:'processing',label:'加工要求',children:queryActive.processingRequirements||'成品手感：滑爽 | 成品光暗：一般 | 布面起皱风格：否 | 布面光洁：否 | 高牢度：否 | 预缩要求：否',span:2},
-   {key:'opening',label:'开卡信息',children:`${queryActive.worker||'水木'} | ${dayjs(queryActive.created).format('YYYY/M/D HH:mm:ss')}`},
-  ]}/>
-  <div className="query-history-reference-layout"><section className="query-history-reference-history"><div className="query-history-reference-heading"><h3 className="query-history-reference-section">配方履历</h3><Tabs className="query-bath-tabs" activeKey={String(queryBathRatio)} onChange={key=>{const ratio=Number(key),prefix=`C${String(ratio).padStart(2,'0')}`;setQueryBathRatio(ratio);setQuerySelectedFormula(current=>current?current.replace(/^C\d{2}/,prefix):'');setQueryInlineEdit(null)}} items={queryBathOptions.map(ratio=>({key:String(ratio),label:`浴比 1:${ratio}`}))}/></div><Table bordered size="small" tableLayout="fixed" pagination={false} scroll={{y:360}} rowKey={row=>`${row.formula}-${row.card}`} dataSource={queryHistoryCardRows} onRow={row=>({onClick:()=>{setQuerySelectedFormula(row.formula);setQueryUsageCard(row.card);setQueryInlineEdit(null)}})} rowClassName={row=>row.formula===selectedQueryUsage.formula?'active-row':''} columns={[
-   {title:'配方号',dataIndex:'formula',width:150,onCell:row=>({rowSpan:row.groupStart?row.groupSize:0,style:{verticalAlign:'middle'}}),render:(value,row)=><div className="query-history-reference-formula"><a onClick={event=>{event.stopPropagation();setQuerySelectedFormula(row.formula);setQueryUsageCard(row.card);setQueryInlineEdit(null);const readVersion=(number:string,version:number):Formula=>{const saved=queryEdits[number]??(version===0?queryEdits[queryActive.key]:undefined);return saved?{bath:saved.bath,rows:saved.rows.map(item=>({...item,name:'',process:item.process??'',processName:item.processName??'',ph:item.ph??''}))}:queryFormulaSnapshot(row.bath,version)};const previousNumber=row.version>0?row.formula.replace(/v\d+$/,`v${row.version-1}`):undefined;const metadata=queryEdits[row.formula]??(row.version===0?queryEdits[queryActive.key]:undefined);setHistoryFormulaPreview({applicant:metadata?.applicant??queryActive.worker,appliedAt:metadata?.updatedAt??row.created,reason:metadata?.reason??row.reason,confirmedBy:metadata?.confirmedBy,confirmedAt:metadata?.confirmedAt,number:row.formula,formula:readVersion(row.formula,row.version),previousNumber,previous:previousNumber?readVersion(previousNumber,row.version-1):undefined,confirmed:row.confirmed})}}>{value}{row.isSample&&<Tag color="blue">小样</Tag>}{!row.confirmed&&<sup className="copy-formula-unconfirmed">未确认</sup>}</a><small>{row.reason}</small></div>},
-   {title:'流程卡号',dataIndex:'card',width:125,ellipsis:true},{title:'加料',dataIndex:'addition',width:55,align:'center',render:value=>`${value}次`},{title:'不良',dataIndex:'defect',width:70,align:'center',ellipsis:true},{title:'半检对样',width:145,align:'center',render:(_,row)=>renderMatchResult(row.halfDirection,row.halfDepth)},{title:'成品对样',width:145,align:'center',render:(_,row)=>renderMatchResult(row.finishedDirection,row.finishedDepth)}
-  ]}/></section><section className="query-history-reference-current"><div className="query-history-reference-current-heading"><h3>当前订单配方 <span>配方号：{queryRecord.formula}</span></h3>{queryInlineEdit?.formulaNo===queryRecord.formula?<Space size={4}><Button size="small" onClick={()=>setQueryInlineEdit(null)}>取消</Button><Button className="query-history-inline-save" type="primary" size="small" onClick={saveQueryInlineEdit}>保存</Button></Space>:<Space size={4}><Button type="link" size="small" icon={<EditOutlined/>} onClick={startQueryInlineEdit}>编辑</Button><Button type="link" size="small" icon={<PrinterOutlined/>} onClick={()=>window.print()}>打印</Button></Space>}</div>{queryInlineEdit?.formulaNo===queryRecord.formula?<DyeFormulaTable compact fitWidth showBath editing formula={queryInlineEdit.formula} onChange={formula=>setQueryInlineEdit(current=>current?{...current,formula}:current)}/>:<DyeFormulaTable compact fitWidth formula={queryDisplayFormula}/>}</section></div>
- </>:<Empty description="暂无符合条件的配方"/>;
- const openQueryHistory=(row:LabRecord)=>{setActiveRow(row);setHistorySelected(row);setQueryBathRatio(row.ratio===5?4:row.ratio);setQueryUsageCard('');setQuerySelectedFormula('');setQueryDetailTab('formula');setQueryInlineEdit(null);setQueryHistoryOpen(true)};
- const queryPage=()=> <section className="panel query-history-table-page">
-  <div className="query-history-table-filters">
-   <label className="query-history-filter-field"><span>订字：</span><Input aria-label="配方履历订字" placeholder="请输入订字" value={queryFilters.order} onChange={event=>setQueryFilters(current=>({...current,order:event.target.value}))} onPressEnter={applyQueryHistoryFilters}/></label>
-   <label className="query-history-filter-field"><span>色号：</span><Input aria-label="配方履历色号" placeholder="请输入色号" value={queryFilters.colorNo} onChange={event=>setQueryFilters(current=>({...current,colorNo:event.target.value}))} onPressEnter={applyQueryHistoryFilters}/></label>
-   <label className="query-history-filter-field query-history-filter-card"><span>流程卡号：</span><Input aria-label="配方履历流程卡号" placeholder="请输入流程卡号" value={queryFilters.processCard} onChange={event=>setQueryFilters(current=>({...current,processCard:event.target.value}))} onPressEnter={applyQueryHistoryFilters}/></label>
-   <label className="query-history-filter-field query-history-filter-formula"><span>配方号：</span><Input aria-label="配方履历配方号" placeholder="请输入配方号" value={queryFilters.formula} onChange={event=>setQueryFilters(current=>({...current,formula:event.target.value}))} onPressEnter={applyQueryHistoryFilters}/></label>
-   <label className="query-history-filter-field query-history-filter-date"><span>创建时间：</span><DatePicker.RangePicker aria-label="配方创建时间" value={queryFilterDates} onChange={setQueryFilterDates} format="YYYY-MM-DD" placeholder={['开始日期','结束日期']}/></label>
-   <label className="query-history-filter-field query-history-filter-type"><span>配方类型：</span><Select aria-label="配方履历配方类型" value={queryFilters.formulaType} onChange={formulaType=>setQueryFilters(current=>({...current,formulaType}))} options={['大样','小样','全部'].map(value=>({value,label:value}))}/></label>
-   <label className="query-history-filter-field query-history-filter-dm"><span>DM编号：</span><Input aria-label="配方履历DM编号" placeholder="请输入DM编号" value={queryFilters.dmNo} onChange={event=>setQueryFilters(current=>({...current,dmNo:event.target.value}))} onPressEnter={applyQueryHistoryFilters}/></label>
-   <Space size={6} className="query-history-filter-actions"><Button type="primary" onClick={applyQueryHistoryFilters}>查询</Button><Button onClick={resetQueryHistoryFilters}>重置</Button></Space>
-  </div>
-  <div className="query-history-table-heading"><h3>配方履历</h3><Space><Tag color="blue">共 {queryList.length} 条</Tag>{toolbar}</Space></div>
-  <Table<LabRecord> bordered size="small" rowKey="key" tableLayout="fixed" dataSource={queryList} pagination={{pageSize:10,showTotal:total=>`共 ${total} 条`}} onRow={row=>({onDoubleClick:()=>openQueryHistory(row)})} columns={[
-   {title:'序号',width:55,align:'center',render:(_,__,index)=>index+1},
-   {title:'订字',dataIndex:'order',width:150,ellipsis:true},{title:'色号',dataIndex:'colorNo',width:130,ellipsis:true},{title:'品名',dataIndex:'product',width:150,ellipsis:true},{title:'配方号',dataIndex:'formula',width:150,ellipsis:true,render:value=>value.replace(/^C\d{2}/,'C').replace(/v\d+$/,'')},
-   {title:'浴比',dataIndex:'ratio',width:75,align:'center',render:value=>`1:${value}`},{title:'配方类型',width:85,align:'center',render:(_,row)=>row.formulaType??'大样'},{title:'创建时间',dataIndex:'created',width:145},
-   {title:'操作',width:90,align:'center',render:(_,row)=><Button type="link" onClick={()=>openQueryHistory(row)}>查看履历</Button>},
-  ]}/>
- </section>;
+import ProductionHome from "./ProductionHome";
+import "./browser-compat";
+import GlobalQuickQuery from "./GlobalQuickQuery";
+import FormulaAuditPage from "./FormulaAuditPage";
+import "@ant-design/v5-patch-for-react-19";
+import React, { useState, useEffect } from "react";
+import { createRoot } from "react-dom/client";
+import { App as AntApp, ConfigProvider, Button, Input, InputNumber, Select, DatePicker, Table, Tabs, Drawer, Modal, Space, Checkbox, Tag, Tooltip, Descriptions, Badge, Empty, Popconfirm } from "antd";
+import zhCN from "antd/locale/zh_CN";
+import { CalendarOutlined, BellOutlined, UserOutlined, DesktopOutlined, SkinOutlined, FileTextOutlined, LikeOutlined, DownOutlined, CloseOutlined, LeftOutlined, ReloadOutlined, FullscreenOutlined, SettingOutlined, ColumnHeightOutlined, BarcodeOutlined, ExperimentOutlined, PlusOutlined, EditOutlined, PrinterOutlined, ArrowUpOutlined, ArrowDownOutlined } from "@ant-design/icons";
+import dayjs from "dayjs";
+import { initialRecords, progressRecords, copyRecords, queryRecords, workers, formulaRows, bigFormulaRows, type LabRecord } from "./data";
+import "./styles.css";
+import "./sampling-ant-design.css";
+import "./query-history-reference.css";
+import DyeProcessReview from "./DyeProcessReview";
+import DyeFormulaReview from "./DyeFormulaReview";
+import FormulaChangeReview from "./FormulaChangeReview";
+import FormulaConfirmationPage from "./FormulaConfirmationPage";
+import FormulaConfirmationNewPage from "./FormulaConfirmationNewPage";
+import DyeSchedule from "./DyeSchedule";
+import MatchingDetail from "./MatchingDetail";
+import BadFormulas from "./BadFormulas";
+import SamplingPage from "./SamplingPage";
+import Workbench from "./Workbench";
+import WorkflowGuide from "./WorkflowGuide";
+import WarehouseConfirmation from "./WarehouseConfirmation";
+import WorkshopReductionRate from "./WorkshopReductionRate";
+import AuxiliaryRules from "./AuxiliaryRules";
+import CardOpeningReview from "./CardOpeningReview";
+import CopyFormulaModal from "./CopyFormulaModal";
+import QueryFormulaEditor, { type QueryFormulaEdit } from "./QueryFormulaEditor";
+import QueryFormulaModal, { queryFormulaSnapshot, type QueryFormulaDetail } from "./QueryFormulaModal";
+import ComponentStandardsPage from "./ComponentStandardsPage";
+import DyeFormulaTable from "./DyeFormulaTable";
+import type { Formula } from "./dye-formula-model";
+import type { WorkbenchTarget } from "./workbench-navigation";
+import { matchesQueryHistory, type QueryHistoryFilters } from "./query-history-filters";
+const orderGroups = [
+  {
+    title: "量产订单管理",
+    pages: ["量产订单", "订单信息审核", "订单工艺审核", "订单颜色审核", "计划订单"],
+  },
+  { title: "预打样单管理", pages: ["预打样单", "预打样颜色审核"] },
+];
+const productionPlanMenus = ["染缸计划", "发货计划", "前道计划", "定型计划", "半检计划", "后整理计划", "成检计划"];
+const productionPages = [...productionPlanMenus, "生产主页", "染色工艺审核", "染色配方审核", "染色核算", "核算查询", "染缸计划", "带布通知", "进行中", "待验收", "待确认", "验收记录", "带布查询"];
+const pageLabel = (name: string) => (name === "配方查询" ? "配方履历" : name);
+const menus = ["打样", "抄样", "配方审核", "配方变更", "配方确认", "配方查询", "打样进度"];
+const productionFormulaMenus = ["对样", "三车间减量率", "进仓确认", "助剂规则"];
+const initialTabs = ["试样管理工作台", "工艺分析", "对样结果查询", "半检带布查询", "半检对样到站", "成品对样到站", "带布通知", "带布到站统计", "试样在制品库存", "进行中", "待验收", "预打样单"];
+const copyHistoryRecords: LabRecord[] = queryRecords
+  .slice(0, 7)
+  .map((record, version) => ({
+    ...record,
+    order: "锦丰903",
+    colorNo: "薄荷绿",
+    product: "短纤与棉",
+    color: "薄荷绿",
+    depth: "浅色",
+    ratio: 8,
+    processCard: `Y260630${3701 + version * 3}`,
+    formula: `C08260720216v${[0, 1, 2, 3, 3, 3, 4][version]}`,
+    formulaStatus: (version === 6 ? "未确认" : version === 5 ? "不可用" : "已确认") as LabRecord["formulaStatus"],
+    formulaAvailable: version !== 5 && version !== 6,
+    formulaDescription: record.key === "q1" ? "头缸" : record.formulaDescription,
+  }))
+  .sort((a, b) => b.created.localeCompare(a.created));
+const copyUsageRows = (source: LabRecord) => [source, ...copyHistoryRecords.slice(0, 4).filter((record) => record.key !== source.key)];
+const newQueryHistoryFilters = (): QueryHistoryFilters => ({
+  order: "",
+  colorNo: "",
+  processCard: "",
+  formula: "",
+  dmNo: "",
+  formulaType: "大样",
+});
+const newQueryHistoryDates = () => [dayjs("2023-10-07"), dayjs("2026-10-07")];
+const samplingAntTheme = {
+  token: {
+    colorPrimary: "#1677ff",
+    colorSuccess: "#52c41a",
+    colorWarning: "#faad14",
+    colorError: "#ff4d4f",
+    colorText: "#1f1f1f",
+    colorTextSecondary: "#595959",
+    colorBgLayout: "#f5f5f5",
+    colorBorder: "#d9d9d9",
+    borderRadius: 6,
+    fontSize: 13,
+    controlHeight: 32,
+  },
+  components: {
+    Table: {
+      headerBg: "#fafafa",
+      headerColor: "#262626",
+      cellPaddingBlockSM: 8,
+      cellPaddingInlineSM: 10,
+      borderColor: "#f0f0f0",
+      rowHoverBg: "#fafafa",
+    },
+    Tabs: { horizontalItemGutter: 24, itemSelectedColor: "#1677ff" },
+    Button: { primaryShadow: "none", defaultShadow: "none" },
+    Input: { activeBorderColor: "#1677ff", hoverBorderColor: "#4096ff" },
+    Select: { optionSelectedBg: "#e6f4ff" },
+    Drawer: { paddingLG: 20 },
+  },
+};
+function Main() {
+  const { message } = AntApp.useApp();
+  const [queryInlineEdit, setQueryInlineEdit] = useState<{
+    formulaNo: string;
+    formula: Formula;
+  } | null>(null);
+  const [queryEditing, setQueryEditing] = useState<LabRecord | null>(null);
+  const [queryEdits, setQueryEdits] = useState<Record<string, QueryFormulaEdit>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("lab-query-formula-edits") || "{}");
+    } catch {
+      return {};
+    }
+  });
+  const [queryFormulaDetail, setQueryFormulaDetail] = useState<QueryFormulaDetail | null>(null);
+  const [historyFormulaPreview, setHistoryFormulaPreview] = useState<{
+    number: string;
+    formula: Formula;
+    previousNumber?: string;
+    previous?: Formula;
+    confirmed: boolean;
+    applicant: string;
+    appliedAt: string;
+    reason: string;
+    confirmedBy?: string;
+    confirmedAt?: string;
+  } | null>(null);
+  const [queryHistoryOpen, setQueryHistoryOpen] = useState(false);
+  const [queryDetailTab, setQueryDetailTab] = useState<"formula" | "cards">("formula");
+  const [queryAccountingCard, setQueryAccountingCard] = useState<string | null>(null);
+  const [auditFormulaEdits, setAuditFormulaEdits] = useState<Record<string, typeof bigFormulaRows>>({});
+  const [auditEditingKey, setAuditEditingKey] = useState<string | null>(null);
+  const [auditEditReductionRate, setAuditEditReductionRate] = useState(10);
+  const [auditEditBathRatio, setAuditEditBathRatio] = useState(6.5);
+  const [queryUsageCard, setQueryUsageCard] = useState("");
+  const [querySelectedFormula, setQuerySelectedFormula] = useState("");
+  const [queryBathRatio, setQueryBathRatio] = useState(queryRecords[0].ratio);
+  const [queryDateOpen, setQueryDateOpen] = useState(false);
+  const [queryFilters, setQueryFilters] = useState<QueryHistoryFilters>(newQueryHistoryFilters);
+  const [appliedQueryFilters, setAppliedQueryFilters] = useState<QueryHistoryFilters>(newQueryHistoryFilters);
+  const [queryFilterDates, setQueryFilterDates] = useState<any>(newQueryHistoryDates);
+  const [appliedQueryDates, setAppliedQueryDates] = useState<any>(newQueryHistoryDates);
+  const [copyFormulaDetail, setCopyFormulaDetail] = useState<LabRecord | null>(null);
+  const [page, setPage] = useState("试样管理工作台"),
+    [tabs, setTabs] = useState(initialTabs),
+    [collapsed, setCollapsed] = useState(false),
+    [section, setSection] = useState("配方"),
+    [module, setModule] = useState("试样管理");
+  const [orderGroupsOpen, setOrderGroupsOpen] = useState([true, true]);
+  const [records, setRecords] = useState<LabRecord[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("lab-records") || "null") || initialRecords;
+    } catch {
+      return initialRecords;
+    }
+  });
+  const [keyword, setKeyword] = useState(""),
+    [colorKeyword, setColorKeyword] = useState(""),
+    [applied, setApplied] = useState(["", ""]),
+    [status, setStatus] = useState("待审核"),
+    [worker, setWorker] = useState<string>(),
+    [dates, setDates] = useState<any>([dayjs("2026-08-07"), dayjs("2026-09-07")]),
+    [filterMeta, setFilterMeta] = useState<any>({}),
+    [category, setCategory] = useState("0");
+  const [selected, setSelected] = useState<React.Key[]>([]),
+    [activeRow, setActiveRow] = useState<LabRecord>(queryRecords[0]),
+    [detail, setDetail] = useState<LabRecord | null>(null),
+    [detailKind, setDetailKind] = useState(""),
+    [detailTab, setDetailTab] = useState("配方"),
+    [editing, setEditing] = useState(false);
+  const [formula, setFormula] = useState(() => {
+      try {
+        return JSON.parse(localStorage.getItem("lab-formula") || "null") || formulaRows;
+      } catch {
+        return formulaRows;
+      }
+    }),
+    [draft, setDraft] = useState(formula),
+    [scanOpen, setScanOpen] = useState(false),
+    [scan, setScan] = useState(""),
+    [matched, setMatched] = useState(false),
+    [shift, setShift] = useState("甲班"),
+    [historySelected, setHistorySelected] = useState(queryRecords[0]);
+  useEffect(() => {
+    document.querySelector(".page-tabs>div.active")?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [page]);
+  const navigate = (name: string) => {
+    if (orderGroups.some((g) => g.pages.includes(name))) {
+      setModule("订单管理");
+      setOrderGroupsOpen((previous) => previous.map((open, i) => open || orderGroups[i].pages.includes(name)));
+    } else if (productionPages.includes(name)) {
+      setModule("生产管理");
+    } else if (name === "开卡审核") {
+      setModule("试样管理");
+      setSection("配方推荐");
+    } else if (productionFormulaMenus.includes(name)) {
+      setModule("试样管理");
+      setSection("生产配方");
+    } else if (menus.includes(name) || name === "试样管理工作台" || name === "流程说明" || name === "组件规范") {
+      setModule("试样管理");
+      if (name === "组件规范") setSection("");
+      else setSection("配方");
+    }
+    if (name === "抄样") {
+      setActiveRow(copyRecords[0]);
+      setHistorySelected(copyHistoryRecords[0]);
+      setDetailKind("抄样");
+      setDetail(null);
+    }
+    if (name === "配方查询") {
+      setActiveRow(queryRecords[0]);
+      setHistorySelected(queryRecords[0]);
+    }
+    setPage(name);
+    setTabs((t) => (t.includes(name) ? t : [...t, name]));
+    setKeyword("");
+    setColorKeyword("");
+    setApplied(["", ""]);
+    setCategory("0");
+    setSelected([]);
+    setFilterMeta({});
+    setStatus(name === "打样进度" ? "进行中" : name === "配方查询" ? "大样" : "待审核");
+  };
+  const openWorkflowTab = (name: string) => {
+    setTabs((current) => {
+      if (current.includes(name)) return current;
+      const next = [...current];
+      next.splice(Math.max(0, current.indexOf(page) + 1), 0, name);
+      return next;
+    });
+    navigate(name);
+  };
+  const startMatching = () => {
+    if (!scan.trim()) {
+      message.warning("请输入流程卡号");
+      return;
+    }
+    setScan(scan.trim());
+    setMatched(true);
+    setScanOpen(false);
+  };
+  const openWorkbenchPage = (target: WorkbenchTarget) => {
+    if (target.page === "配方确认" || target.page === "配方审核" || target.page === "配方变更") navigate(target.page);
+    else if (target.page === "试样任务跟踪") navigate("打样进度");
+    else message.info(`${target.page}入口已预留`);
+  };
+  const applyQueryHistoryFilters = () => {
+    setAppliedQueryFilters({ ...queryFilters });
+    setAppliedQueryDates(queryFilterDates ? [...queryFilterDates] : null);
+  };
+  const resetQueryHistoryFilters = () => {
+    const nextFilters = newQueryHistoryFilters(),
+      nextDates = newQueryHistoryDates();
+    setQueryFilters(nextFilters);
+    setAppliedQueryFilters({ ...nextFilters });
+    setQueryFilterDates(nextDates);
+    setAppliedQueryDates([...nextDates]);
+  };
+  const persist = (next: LabRecord[]) => {
+    setRecords(next);
+    localStorage.setItem("lab-records", JSON.stringify(next));
+  };
+  const openDetail = (row: LabRecord, kind: string) => {
+    setDetail(row);
+    setDetailKind(kind);
+    setDetailTab("配方");
+    if (kind === "抄样") setHistorySelected(copyHistoryRecords[0]);
+  };
+  const audit = (row: LabRecord, pass: boolean) => {
+    persist(records.map((r) => (r.key === row.key ? { ...r, status: pass ? "已通过" : "未通过" } : r)));
+    message.success(`${row.order} 配方${pass ? "审核通过" : "已退回"}`);
+    setDetail(null);
+  };
+  const toolbar = (
+    <Space size={14} className="table-tools">
+      <Tooltip title="全屏">
+        <FullscreenOutlined
+          onClick={() => {
+            if (document.fullscreenElement) document.exitFullscreen();
+            else document.documentElement.requestFullscreen?.();
+          }}
+        />
+      </Tooltip>
+      <Tooltip title="刷新">
+        <ReloadOutlined
+          onClick={() => {
+            setApplied(["", ""]);
+            setKeyword("");
+            message.success("数据已刷新");
+          }}
+        />
+      </Tooltip>
+      <Tooltip title="紧凑表格">
+        <ColumnHeightOutlined onClick={() => document.body.classList.toggle("comfortable")} />
+      </Tooltip>
+      <Tooltip title="恢复默认视图">
+        <SettingOutlined
+          onClick={() => {
+            setSelected([]);
+            setFilterMeta({});
+            message.success("已恢复默认视图");
+          }}
+        />
+      </Tooltip>
+    </Space>
+  );
+  const search = (simple = false, query = false) => (
+    <div className={"filter-bar " + (simple ? "simple" : "")}>
+      {!simple && <span>{query ? "订字：" : "查询内容："}</span>}
+      <Input
+        aria-label="订字搜索"
+        placeholder={simple ? "搜索订字" : query ? "请输入订字" : "搜索订字/流程卡号/配方号"}
+        value={keyword}
+        onChange={(e) => setKeyword(e.target.value)}
+        onPressEnter={() => {
+          setApplied([keyword, colorKeyword]);
+          setFilterMeta({ status, worker, dates });
+        }}
+        style={{ width: query ? 120 : 220 }}
+      />
+      {query && <span>色号：</span>}
+      <Input aria-label="色号搜索" placeholder="搜索色号/DM编号" value={colorKeyword} onChange={(e) => setColorKeyword(e.target.value)} style={{ width: 160 }} />
+      {!simple && !query && (
+        <>
+          <span>{page === "打样进度" ? "任务状态：" : "审核状态："}</span>
+          <Select value={status} onChange={setStatus} style={{ width: 150 }} options={(page === "打样进度" ? ["全部", "进行中", "已完成", "已关闭"] : ["全部", "待审核", "已通过", "未通过"]).map((value) => ({ value, label: value }))} />
+        </>
+      )}
+      {page === "打样进度" && (
+        <>
+          <span>打样员：</span>
+          <Select allowClear placeholder="请选择" value={worker} onChange={setWorker} style={{ width: 130 }} options={workers.map((value) => ({ value, label: value }))} />
+        </>
+      )}
+      {!simple && (
+        <>
+          <span>创建时间：</span>
+          <DatePicker.RangePicker value={dates} onChange={setDates} style={{ width: 260 }} />
+        </>
+      )}
+      {query && (
+        <>
+          <span>配方类型：</span>
+          <Select
+            value={status === "待审核" ? "大样" : status}
+            onChange={setStatus}
+            options={["大样", "小样", "全部"].map((value) => ({
+              value,
+              label: value,
+            }))}
+            style={{ width: 90 }}
+          />
+        </>
+      )}
+      <div className="filter-spacer" />
+      <Button
+        type="primary"
+        onClick={() => {
+          setApplied([keyword, colorKeyword]);
+          setFilterMeta({ status, worker, dates });
+        }}
+      >
+        查 询
+      </Button>
+      <Button
+        onClick={() => {
+          setKeyword("");
+          setColorKeyword("");
+          setApplied(["", ""]);
+          setFilterMeta({});
+          setWorker(undefined);
+          setDates([dayjs("2026-08-07"), dayjs("2026-09-07")]);
+        }}
+      >
+        重 置
+      </Button>
+    </div>
+  );
+  const filter = (rows: LabRecord[]) => rows.filter((r) => (r.order + r.formula + "Y2606303701" + (["抄样", "配方查询"].includes(page) ? r.colorNo : "")).toLowerCase().includes(applied[0].toLowerCase()) && r.colorNo.toLowerCase().includes(applied[1].toLowerCase()) && (!filterMeta.worker || r.worker === filterMeta.worker) && (!filterMeta.status || page === "配方查询" || ["全部", "大样", "小样"].includes(filterMeta.status) || r.status === filterMeta.status) && (!filterMeta.dates?.[0] || dayjs(r.created).isAfter(filterMeta.dates[0].startOf("day").subtract(1, "second"))) && (!filterMeta.dates?.[1] || dayjs(r.created).isBefore(filterMeta.dates[1].endOf("day"))));
+  const col = (title: string, dataIndex: string, width?: number) => ({
+    title,
+    dataIndex,
+    width,
+    ellipsis: true,
+  });
+  const colorCol = {
+    title: "颜色",
+    dataIndex: "color",
+    width: 95,
+    render: (v: string, r: LabRecord) => (
+      <span className="color-label">
+        <i style={{ background: r.hex }} />
+        {v}
+      </span>
+    ),
+  };
+  const pagination = {
+    defaultPageSize: 20,
+    showSizeChanger: true,
+    pageSizeOptions: [10, 20, 100],
+    showTotal: (n: number) => `共 ${n} 条`,
+    size: "small" as const,
+  };
+  const queryList = queryRecords.filter((row) =>
+    matchesQueryHistory(row, {
+      ...appliedQueryFilters,
+      start: appliedQueryDates?.[0]?.format("YYYY-MM-DD"),
+      end: appliedQueryDates?.[1]?.format("YYYY-MM-DD"),
+    }),
+  );
+  const queryActive = queryList.find((row) => row.key === activeRow.key) ?? queryList[0] ?? queryRecords[0];
+  const queryBathOptions = Array.from(new Set([queryActive.ratio, 4, 6]))
+    .filter((ratio) => ratio !== 5)
+    .sort((left, right) => left - right);
+  const queryFormulaBase = queryActive.formula.replace(/^C\d{2}/, `C${String(queryBathRatio).padStart(2, "0")}`);
+  const halfMatchDirections = ["正常", "偏红", "偏蓝", "正常", "偏黄", "正常", "偏红"],
+    halfMatchDepths = ["正常", "偏浅", "偏深", "正常", "偏浅", "正常", "偏浅"];
+  const finishedMatchDirections = ["正常", "正常", "偏蓝", "正常", "正常", "正常", "偏红"],
+    finishedMatchDepths = ["正常", "正常", "偏深", "正常", "正常", "正常", "偏浅"];
+  const queryHistoryReasons = queryBathRatio === 4 ? ["初始配方", "降低助剂用量，改善手感", "调整灰度，减少红色染料", "优化升温曲线与保温时间", "确认稳定生产配方"] : ["初始配方", "修正色光，增加蓝色染料", "降低红色染料比例", "延长保温并校正 pH", "优化主染料比例"];
+  const queryLargeUsages = [4, 3, 3, 3, 2, 1, 0].map((version, index) => ({
+    key: index,
+    version,
+    formula: queryFormulaBase.replace(/v\d+$/, `v${version}`),
+    card: `Y260630${
+      3701 +
+      Math.max(
+        0,
+        queryRecords.findIndex((record) => record.key === queryActive.key),
+      ) *
+        30 +
+      (6 - index) * 3
+    }`,
+    bath: queryBathRatio,
+    addition: version === 0 ? 3 : version === 2 ? 2 : 0,
+    defect: version === 0 ? "色差" : version === 2 ? "色光偏红" : "—",
+    reason: queryHistoryReasons[version],
+    halfDirection: halfMatchDirections[index],
+    halfDepth: halfMatchDepths[index],
+    finishedDirection: finishedMatchDirections[index],
+    finishedDepth: finishedMatchDepths[index],
+    created: dayjs(queryActive.created)
+      .add(6 - index, "day")
+      .format("YYYY-MM-DD HH:mm"),
+    confirmed: version !== 4,
+    available: version === 3,
+    isSample: false,
+  }));
+  const querySmallUsage = {
+    key: "sample",
+    version: 0,
+    formula: queryFormulaBase.replace(/^C/, "A").replace(/v\d+$/, "v0"),
+    card: `A-SAMPLE-${queryActive.key}`,
+    bath: queryBathRatio,
+    addition: 0,
+    defect: "—",
+    reason: "小样确认配方",
+    halfDirection: "正常",
+    halfDepth: "正常",
+    finishedDirection: "正常",
+    finishedDepth: "正常",
+    created: dayjs(queryActive.created).subtract(1, "day").format("YYYY-MM-DD HH:mm"),
+    confirmed: true,
+    available: false,
+    isSample: true,
+  };
+  const queryUsages = [...queryLargeUsages, querySmallUsage];
+  const queryVersionRows = queryUsages.filter((row, index, rows) => rows.findIndex((candidate) => candidate.formula === row.formula) === index);
+  const selectedQueryUsage = queryUsages.find((row) => row.formula === querySelectedFormula) ?? queryUsages.find((row) => row.card === queryUsageCard) ?? queryUsages.find((row) => row.available) ?? queryUsages[0];
+  const selectedFormulaCards = selectedQueryUsage.isSample ? [] : queryUsages.filter((row) => !row.isSample && row.formula === selectedQueryUsage.formula);
+  const accountingUsage = queryUsages.find((row) => row.card === queryAccountingCard);
+  const queryRecord = {
+    ...queryActive,
+    formula: selectedQueryUsage.formula,
+    ratio: queryBathRatio,
+  };
+  const queryVersion = Number(queryRecord.formula.match(/v(\d+)$/)?.[1] ?? 0);
+  const querySnapshot = queryFormulaSnapshot(queryRecord.ratio, queryVersion);
+  const queryFormula = queryEdits[queryRecord.formula] ??
+    (queryVersion === 0 ? queryEdits[queryActive.key] : undefined) ?? {
+      bath: querySnapshot.bath ?? queryRecord.ratio,
+      rows: querySnapshot.rows.map((row) => ({
+        ...row,
+        ratio: row.ratio ?? 0,
+        algorithm: row.algorithm ?? "布重",
+        unit: row.unit ?? "克/市斤",
+      })),
+    };
+  const queryDisplayFormula: Formula = {
+    bath: queryFormula.bath,
+    rows: queryFormula.rows.map((row) => ({
+      ...row,
+      name: "name" in row ? String(row.name ?? "") : "",
+      process: row.process ?? "",
+      processName: row.processName ?? "",
+      ph: row.ph ?? "",
+      algorithm: row.algorithm ?? "布重",
+      unit: row.unit ?? "克/市斤",
+    })),
+  };
+  const startQueryInlineEdit = () =>
+    setQueryInlineEdit({
+      formulaNo: queryRecord.formula,
+      formula: structuredClone(queryDisplayFormula),
+    });
+  const saveQueryInlineEdit = () => {
+    if (!queryInlineEdit) return;
+    const value = queryInlineEdit.formula;
+    if (!value.bath || !value.rows.length || value.rows.some((row) => !row.code.trim() || row.ratio === null || row.ratio < 0)) {
+      message.warning("请填写有效的浴比、染助剂和比例");
+      return;
+    }
+    const previous = queryEdits[queryInlineEdit.formulaNo];
+    const saved: QueryFormulaEdit = {
+      bath: value.bath,
+      rows: value.rows.map((row) => ({
+        key: row.key,
+        stage: row.stage,
+        code: row.code,
+        ratio: row.ratio ?? 0,
+        algorithm: row.algorithm ?? "布重",
+        unit: row.unit ?? "克/市斤",
+        process: row.process,
+        processName: row.processName,
+        ph: row.ph,
+      })),
+      reason: previous?.reason ?? "页面编辑",
+      applicant: "水木",
+      updatedAt: new Date().toISOString(),
+    };
+    const next = { ...queryEdits, [queryInlineEdit.formulaNo]: saved };
+    localStorage.setItem("lab-query-formula-edits", JSON.stringify(next));
+    setQueryEdits(next);
+    setQueryInlineEdit(null);
+    message.success("配方已保存");
+  };
+  const accountingFormulaRows = [
+    ["1", "A52", 2.25, "布重", "克/升", "130°C*30′", "3.9-4.5", "", ""],
+    ["1", "A35", 4, "布重", "克/升", "", "", "", ""],
+    ["1", "A5", 1.32, "布重", "克/升", "", "", "", ""],
+    ["1", "X1", 0.8, "布重", "克/升", "", "", "", ""],
+    ["1", "X2", 2.75, "布重", "克/升", "", "", "", ""],
+    ["1", "X3", 1, "布重", "克/升", "", "", "", ""],
+    ["1", "P50-1", 6.4, "水重", "百分比", "", "", "", ""],
+    ["1", "P2", 1, "水重", "百分比", "", "", "", ""],
+    ["1", "P53", 1, "水重", "百分比", "", "", "", ""],
+    ["2", "B18", 3.2, "布重", "克/升", "60°C*60′\n75°C*10′\n409", "10.8-11.8", 0.1, "60*20"],
+    ["2", "B2", 4.3, "布重", "克/升", "", "", "", ""],
+    ["2", "B10", 3, "布重", "克/升", "", "", 0.125, ""],
+    ["2", "P13", 0.4, "水重", "百分比", "", "", "", ""],
+    ["2", "P2", 0.2, "水重", "百分比", "", "", "", ""],
+    ["2", "P1", 0, "水重", "百分比", "", "", "", ""],
+    ["2", "P7-1", 2.44, "水重", "百分比", "", "", "", ""],
+    ["2", "B29", "", "", "", "", "", 0.05, ""],
+  ].map(([stage, code, ratio, algorithm, unit, process, ph, addition, additionProcess], index) => ({
+    key: `accounting-${index}`,
+    stage,
+    code,
+    ratio,
+    algorithm,
+    unit,
+    process,
+    ph,
+    addition,
+    additionProcess,
+    groupStart: index === 0 || index === 9,
+    groupSize: index < 9 ? 9 : 8,
+  }));
+  const accountingMerge = (row: (typeof accountingFormulaRows)[number]) => ({
+    rowSpan: row.groupStart ? row.groupSize : 0,
+  });
+  const renderMatchResult = (direction: string, depth: string) =>
+    direction === "正常" && depth === "正常" ? (
+      <Tag color="green">OK</Tag>
+    ) : (
+      <Space size={4}>
+        <Tag color={direction.includes("红") ? "red" : direction.includes("黄") ? "gold" : "blue"}>{direction}</Tag>
+        <Tag className={`query-match-depth ${depth.includes("深") ? "deep" : ""}`}>
+          {depth.includes("深") ? "↑" : "↓"} {depth}
+        </Tag>
+      </Space>
+    );
+  const queryHistoryCardRows = queryUsages.map((row, index, all) => ({
+    ...row,
+    groupStart: index === 0 || all[index - 1]?.formula !== row.formula,
+    groupSize: all.filter((candidate) => candidate.formula === row.formula).length,
+  }));
+  const queryMetadata = Object.entries({
+    订字: queryActive.order,
+    色号: queryActive.colorNo,
+    品名: queryActive.product,
+    颜色深浅: queryActive.depth,
+    颜色: queryActive.color,
+    染料类别: queryActive.dyeCategory || "—",
+    客户: queryActive.customer || "—",
+    业务员: queryActive.salesperson || "—",
+    要求浴比: `1:${queryActive.ratio}`,
+    白坯克重: queryActive.greigeWeight || "—",
+    白坯门幅: queryActive.greigeWidth || "—",
+    对色光源: queryActive.colorLight || "—",
+    订单类型: queryActive.orderCategory || "—",
+    下单时间: dayjs(queryActive.created).format("YY-MM-DD HH:mm"),
+  });
+  const formulaTable = (big = false, editable = false, auditRows?: typeof bigFormulaRows, reductionRate = 0, onOpenReduction?: () => void) => {
+    const rows = editable ? draft : big ? (auditRows ?? bigFormulaRows) : page === "配方查询" ? queryFormula.rows : formula;
+    const merge = (i: number) => ({
+      rowSpan: page === "配方查询" ? 1 : big ? (i === 0 ? 5 : i === 5 ? 7 : 0) : i === 0 ? rows.length : 0,
+    });
+    if (big && auditEditingKey) {
+      const effectiveReductionRate = reductionRate || auditEditReductionRate;
+      const patchAuditRow = (key: string, value: Record<string, unknown>) => setDraft((current: any[]) => current.map((row: any) => (row.key === key ? { ...row, ...value } : row)));
+      const addAuditRow = (stage = 1) =>
+        setDraft((current: any[]) => [
+          ...current,
+          {
+            key: crypto.randomUUID(),
+            code: "",
+            ratio: 0,
+            stage,
+            algorithm: "布重",
+            unit: "克/市斤",
+          },
+        ]);
+      const saveAuditEdit = () => {
+        setAuditFormulaEdits((previous) => ({
+          ...previous,
+          [auditEditingKey]: draft,
+        }));
+        setAuditEditingKey(null);
+        setEditing(false);
+        message.success("配方已保存");
+      };
+      return (
+        <div className="audit-formula-editor">
+          <div className="audit-formula-editor-actions">
+            <span className="formula-audit-sizing-rate">
+              含浆率 <b>不用扣</b>
+            </span>
+            <Button type="primary" onClick={onOpenReduction}>
+              引用减量率
+            </Button>
+            <Button type="primary" onClick={saveAuditEdit}>
+              保 存
+            </Button>
+            <Button
+              onClick={() => {
+                setEditing(false);
+                setAuditEditingKey(null);
+              }}
+            >
+              取 消
+            </Button>
+          </div>
+          <Table
+            bordered
+            size="small"
+            pagination={false}
+            rowKey="key"
+            tableLayout="fixed"
+            scroll={{ x: 1500 }}
+            dataSource={draft}
+            columns={[
+              {
+                title: "操作",
+                width: 135,
+                align: "center",
+                render: (_: unknown, row: any, index: number) => (
+                  <Space size={10}>
+                    <Button type="link" onClick={() => addAuditRow(row.stage)}>
+                      增
+                    </Button>
+                    {index === draft.length - 1 && (
+                      <Button type="link" onClick={() => addAuditRow(Number(row.stage) + 1)}>
+                        增阶段
+                      </Button>
+                    )}
+                    <Button type="link" danger onClick={() => setDraft((current: any[]) => current.filter((item: any) => item.key !== row.key))}>
+                      删
+                    </Button>
+                  </Space>
+                ),
+              },
+              {
+                title: "浴比",
+                width: 75,
+                align: "center",
+                render: () => <InputNumber min={1} value={auditEditBathRatio} onChange={(value) => setAuditEditBathRatio(value ?? 8)} />,
+                onCell: (_: unknown, index?: number) => ({
+                  rowSpan: index === 0 ? draft.length : 0,
+                }),
+              },
+              {
+                title: "阶段",
+                width: 90,
+                align: "center",
+                render: (_: unknown, row: any) => <InputNumber min={1} value={row.stage} onChange={(value) => patchAuditRow(row.key, { stage: value ?? 1 })} />,
+              },
+              {
+                title: "染助剂代码",
+                width: 130,
+                align: "center",
+                render: (_: unknown, row: any) => <Select showSearch value={row.code} onChange={(value) => patchAuditRow(row.key, { code: value })} options={["A1", "A12", "A14", "P2", "P103", "A52", "A35", "A5"].map((value) => ({ value, label: value }))} />,
+              },
+              {
+                title: "原比例",
+                width: 105,
+                align: "center",
+                render: (_: unknown, row: any) => <InputNumber min={0} precision={3} value={row.ratio} onChange={(value) => patchAuditRow(row.key, { ratio: value ?? 0 })} />,
+              },
+              {
+                title: (
+                  <div className="audit-reduction-heading">
+                    <span>扣减</span>
+                    <InputNumber min={0} max={99} value={effectiveReductionRate} onChange={(value) => setAuditEditReductionRate(value ?? 0)} />
+                  </div>
+                ),
+                width: 115,
+                align: "center",
+                render: (_: unknown, row: any) => (row.algorithm === "布重" ? Number((row.ratio * (1 - effectiveReductionRate / 100)).toFixed(3)) : row.ratio),
+              },
+              {
+                title: "算法",
+                width: 120,
+                align: "center",
+                render: (_: unknown, row: any) => (
+                  <Select
+                    value={row.algorithm}
+                    onChange={(value) =>
+                      patchAuditRow(row.key, {
+                        algorithm: value,
+                        unit: value === "布重" ? "克/市斤" : "克/升",
+                      })
+                    }
+                    options={["布重", "水重"].map((value) => ({
+                      value,
+                      label: value,
+                    }))}
+                  />
+                ),
+              },
+              {
+                title: "单位",
+                width: 145,
+                align: "center",
+                render: (_: unknown, row: any) => (
+                  <Select
+                    value={row.unit}
+                    onChange={(value) => patchAuditRow(row.key, { unit: value })}
+                    options={["克/市斤", "克/升"].map((value) => ({
+                      value,
+                      label: value,
+                    }))}
+                  />
+                ),
+              },
+              {
+                title: "工艺",
+                width: 330,
+                align: "center",
+                render: (_: unknown, row: any) => (
+                  <div className="audit-process-fields">
+                    <Select
+                      allowClear
+                      placeholder="请选择工艺"
+                      value={row.process}
+                      onChange={(value) => patchAuditRow(row.key, { process: value })}
+                      options={[
+                        { value: "04 - 130°C*20′", label: "04 - 130°C*20′" },
+                        { value: "49 - 60°C*70′", label: "49 - 60°C*70′" },
+                      ]}
+                    />
+                    <Input
+                      value={row.processName ?? ""}
+                      placeholder="工艺要求"
+                      onChange={(event) =>
+                        patchAuditRow(row.key, {
+                          processName: event.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                ),
+              },
+              {
+                title: "pH",
+                width: 125,
+                align: "center",
+                render: (_: unknown, row: any) => <Input value={row.ph ?? ""} placeholder="请输入" onChange={(event) => patchAuditRow(row.key, { ph: event.target.value })} />,
+              },
+            ]}
+          />
+        </div>
+      );
+    }
+    return (
+      <Table
+        className="formula-table"
+        bordered
+        size="small"
+        pagination={false}
+        dataSource={rows}
+        columns={[
+          {
+            title: "浴比",
+            width: 75,
+            render: () => (big ? "1: 6.5" : `1: ${page === "配方查询" ? queryFormula.bath : detailKind === "抄样" || page === "抄样" ? (copyHistoryRecords.find((record) => record.key === historySelected.key)?.ratio ?? 8) : historySelected.ratio}`),
+            onCell: (_: any, i?: number) => ({
+              rowSpan: i === 0 ? rows.length : 0,
+            }),
+          },
+          {
+            title: "阶段",
+            dataIndex: "stage",
+            width: 80,
+            onCell: (_: any, i?: number) => merge(i || 0),
+          },
+          col("染助剂代码", "code", 120),
+          {
+            title: big ? "大货比例" : "比例",
+            dataIndex: "ratio",
+            width: 100,
+            render: (v: number, r: any) => (editable ? <InputNumber min={0} value={v} onChange={(n) => setDraft(draft.map((x: any) => (x.key === r.key ? { ...x, ratio: n ?? 0 } : x)))} /> : v),
+          },
+          ...(big
+            ? [
+                {
+                  title: `减量率${reductionRate}% 比例`,
+                  dataIndex: "ratio",
+                  width: 110,
+                  render: (value: number) => Number((value * (1 - reductionRate / 100)).toFixed(4)),
+                },
+              ]
+            : []),
+          col("算法", "algorithm", 110),
+          col("单位", "unit", 120),
+          {
+            title: "工艺",
+            render: (_: any, r: any) => (page === "配方查询" ? [r.process, r.processName].filter(Boolean).join(" - ") || "—" : r.stage === 1 ? "04 - 130°C*20′" : "49 60°C*70′ / 09 75°C*10′"),
+            onCell: (_: any, i?: number) => merge(i || 0),
+          },
+          {
+            title: "pH",
+            width: 115,
+            render: (_: any, r: any) => (page === "配方查询" ? r.ph || "—" : r.stage === 1 ? "4.8-5.2" : "10.8-11.8"),
+            onCell: (_: any, i?: number) => merge(i || 0),
+          },
+        ]}
+      />
+    );
+  };
+  const copyDetails = (showHeading = true, source: LabRecord = activeRow) => (
+    <>
+      {showHeading && (
+        <div className="section-heading copy-history-heading">
+          <div className="copy-history-title">
+            <strong>配方履历</strong>
+          </div>
+          <Button type="primary" onClick={() => message.success("已查询最新配方履历")}>
+            查询
+          </Button>
+        </div>
+      )}
+      <Table
+        className="copy-history-table"
+        bordered
+        size="small"
+        pagination={false}
+        scroll={{ y: 205, x: 1100 }}
+        dataSource={copyUsageRows(source)}
+        onRow={(r) => ({ onClick: () => setHistorySelected(r) })}
+        rowClassName={(r) => (r.key === historySelected.key ? "active-row" : "")}
+        columns={[
+          col("订字", "order"),
+          col("品名", "product"),
+          col("色号", "colorNo"),
+          {
+            title: "配方号",
+            dataIndex: "formula",
+            width: 150,
+            ellipsis: true,
+            render: (value: string, row: LabRecord) => {
+              const status = row.formulaStatus ?? (row.formulaAvailable === false ? "未确认" : null),
+                badge = status === "已确认" ? null : status;
+              return (
+                <span className="copy-history-formula">
+                  {value}
+                  {badge && <sup className={"copy-formula-unconfirmed " + (badge === "不可用" ? "is-unavailable" : "")}>{badge}</sup>}
+                </span>
+              );
+            },
+          },
+          {
+            title: "加料次数",
+            width: 80,
+            align: "center",
+            render: (_: unknown, row: LabRecord) => `${row.additionCount ?? 0}次`,
+          },
+          { title: "不良", width: 120, align: "center", render: () => "-" },
+          {
+            title: "浴比",
+            dataIndex: "ratio",
+            width: 65,
+            render: (value: number) => `1:${value}`,
+          },
+          { title: "创建/更改时间", dataIndex: "created", width: 150 },
+          {
+            title: "详情",
+            width: 60,
+            render: (_: any, r: LabRecord) => (
+              <a
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setHistorySelected(r);
+                  setCopyFormulaDetail(r);
+                }}
+              >
+                详情
+              </a>
+            ),
+          },
+        ]}
+      />
+      <h4>配方详情</h4>
+      {formulaTable()}
+    </>
+  );
+  const copyPage = () => {
+    const rows = filter(copyRecords);
+    const recommendedBath = [101, 62, 7, 8],
+      referenceColors = ["锦丰903 / 薄荷绿", "芹王AE / 青绿", "阳光1978-1 / 橄榄绿", "国张711 / 驼色"];
+    return (
+      <section className="panel copy-table-page">
+        <div className="copy-table-filters">
+          <Input
+            aria-label="抄样订字搜索"
+            placeholder="搜索订字"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            onPressEnter={() => {
+              setApplied([keyword, colorKeyword]);
+              setFilterMeta({});
+            }}
+          />
+          <Input
+            aria-label="抄样色号搜索"
+            placeholder="搜索色号/DM编号"
+            value={colorKeyword}
+            onChange={(e) => setColorKeyword(e.target.value)}
+            onPressEnter={() => {
+              setApplied([keyword, colorKeyword]);
+              setFilterMeta({});
+            }}
+          />
+          <span />
+          <Button
+            type="primary"
+            onClick={() => {
+              setApplied([keyword, colorKeyword]);
+              setFilterMeta({});
+            }}
+          >
+            查 询
+          </Button>
+          <Button
+            onClick={() => {
+              setKeyword("");
+              setColorKeyword("");
+              setApplied(["", ""]);
+              setFilterMeta({});
+            }}
+          >
+            重 置
+          </Button>
+        </div>
+        <div className="copy-table-tools">{toolbar}</div>
+        <Table<LabRecord>
+          className="copy-main-table"
+          tableLayout="fixed"
+          rowKey="key"
+          size="small"
+          bordered
+          pagination={{ ...pagination, pageSize: 100 }}
+          dataSource={rows}
+          onRow={(row) => ({
+            onClick: () => {
+              setActiveRow(row);
+              openDetail(row, "抄样");
+            },
+          })}
+          columns={[
+            {
+              title: "序号",
+              width: 60,
+              align: "center",
+              render: (_, __, index) => index + 1,
+            },
+            {
+              title: "订字",
+              dataIndex: "order",
+              width: 130,
+              sorter: (a, b) => a.order.localeCompare(b.order, "zh-CN"),
+            },
+            { title: "色号", dataIndex: "colorNo", width: 130 },
+            {
+              title: "参考订字色号",
+              width: 180,
+              ellipsis: true,
+              render: (_, row) => referenceColors[copyRecords.findIndex((item) => item.key === row.key)] ?? "—",
+            },
+            { title: "品名", dataIndex: "product", width: 150 },
+            {
+              title: "颜色",
+              dataIndex: "color",
+              width: 130,
+              render: (value: string, row) => (
+                <span className="color-label">
+                  <i style={{ background: row.hex }} />
+                  {value}
+                </span>
+              ),
+            },
+            { title: "颜色深浅", dataIndex: "depth", width: 110 },
+            {
+              title: "推荐浴比",
+              width: 100,
+              align: "center",
+              render: (_, row) => `1:${recommendedBath[copyRecords.findIndex((item) => item.key === row.key)] ?? row.ratio}`,
+            },
+            {
+              title: "创建时间",
+              dataIndex: "created",
+              width: 155,
+              sorter: (a, b) => a.created.localeCompare(b.created),
+            },
+            {
+              title: "要求交期",
+              width: 155,
+              sorter: (a, b) => a.due.localeCompare(b.due),
+              render: (_, row) => dayjs(row.created).add(2, "day").format("YYYY-MM-DD HH:mm"),
+            },
+            {
+              title: "是否超时",
+              width: 110,
+              render: (_, row) => `超时${[20.9, 33.3, 99, 12.6][copyRecords.findIndex((item) => item.key === row.key)] ?? 0}天`,
+            },
+          ]}
+        />
+      </section>
+    );
+  };
+  const listPage = () => {
+    const isCopy = page === "抄样",
+      isProgress = page === "打样进度",
+      isChange = page === "配方变更";
+    let data = isCopy ? copyRecords : isProgress ? progressRecords : records;
+    if (category !== "0") data = category === "3" ? [{ ...data[0], key: "pre", type: "预打样" }] : [];
+    if (isChange) data = records.filter((r) => r.status === "未通过");
+    const columns = isCopy
+      ? [
+          {
+            title: "序号",
+            width: 60,
+            render: (_: any, __: any, i: number) => i + 1,
+          },
+          {
+            ...col("订字", "order", 150),
+            sorter: (a: LabRecord, b: LabRecord) => a.order.localeCompare(b.order),
+          },
+          col("色号", "colorNo", 130),
+          col("品名", "product", 160),
+          col("颜色", "color", 110),
+          col("颜色深浅", "depth", 110),
+          {
+            title: "订单浴比",
+            render: (_: any, r: LabRecord) => `1:${r.ratio}`,
+            width: 100,
+          },
+          col("创建时间", "created", 160),
+          {
+            title: "要求交期",
+            width: 155,
+            render: (_: any, r: LabRecord) => `2026-${r.due}`,
+          },
+          {
+            title: "是否超时",
+            width: 100,
+            render: (_: any, __: any, i: number) => `超时${[4.8, 17.1, 18.2, 99][i]}天`,
+          },
+        ]
+      : isProgress
+        ? [
+            {
+              title: "序号",
+              width: 55,
+              render: (_: any, __: any, i: number) => i + 1,
+            },
+            col("订字", "order", 130),
+            col("品名", "product", 120),
+            col("任务类型", "type", 80),
+            colorCol,
+            col("颜色深浅", "depth", 90),
+            { title: "是否加急", width: 80, render: () => "-" },
+            col("创建时间", "created", 140),
+            {
+              title: "是否超时",
+              width: 100,
+              render: (_: any, __: any, i: number) => `超时${[15.2, 8.2, 10.2, 13.1, 13.1, 98.8][i]}天`,
+            },
+            col("任务状态", "status", 90),
+            col("色号", "colorNo", 100),
+            { title: "流程卡号", width: 100, render: () => "-" },
+            {
+              title: "要求交期",
+              dataIndex: "due",
+              width: 100,
+              render: (v: string) => <span className="red">{v}</span>,
+            },
+            col("枪数", "round", 60),
+            {
+              title: "操作",
+              width: 70,
+              render: (_: any, r: LabRecord) => (
+                <Button type="link" onClick={() => openDetail(r, "进度")}>
+                  详情
+                </Button>
+              ),
+            },
+          ]
+        : [
+            {
+              title: "序号",
+              width: 55,
+              render: (_: any, __: any, i: number) => i + 1,
+            },
+            col("订字", "order", 150),
+            col("色号", "colorNo", 140),
+            col("配方号", "formula", 130),
+            {
+              title: "配方类型",
+              width: 90,
+              render: () => (isChange ? "变更" : "正常"),
+            },
+            col("品名", "product", 170),
+            { title: "染料类型", width: 90, render: () => "活性" },
+            colorCol,
+            { title: "对色光源", width: 90, render: () => "-" },
+            col("分配时间", "created", 150),
+            {
+              title: "打样完成时间",
+              width: 155,
+              render: () => "2026-08-14 14:56:17",
+            },
+            col("打样员", "worker", 95),
+            {
+              title: "操作",
+              fixed: "right" as const,
+              width: 155,
+              render: (_: any, r: LabRecord) => (
+                <Space size={6}>
+                  <a
+                    className="red"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      audit(r, false);
+                    }}
+                  >
+                    未通过
+                  </a>
+                  <a
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.print();
+                    }}
+                  >
+                    打印
+                  </a>
+                  <a
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      audit(r, true);
+                    }}
+                  >
+                    通过
+                  </a>
+                </Space>
+              ),
+            },
+          ];
+    return (
+      <>
+        {search(isCopy)}
+        <section className="panel list-panel">
+          <div className="list-heading">
+            {isCopy ? <div /> : <Tabs activeKey={category} onChange={setCategory} items={(isProgress ? ["大货(6)", "预打样(25)", "回修(4)", "复样(0)"] : ["打样 (12)", "抄样(0)", "回修(0)", "预打样(1)"]).map((label, i) => ({ key: String(i), label }))} />}
+            <Space>
+              {isProgress && (
+                <>
+                  <Button disabled={!selected.length} onClick={() => message.success("带布通知已发起")}>
+                    发起带布
+                  </Button>
+                  <Button
+                    disabled={!selected.length}
+                    onClick={() => {
+                      Modal.confirm({
+                        title: "关闭所选任务？",
+                        content: "关闭后可在任务状态中查看。",
+                        onOk: () => {
+                          progressRecords.forEach((r) => {
+                            if (selected.includes(r.key)) r.status = "已关闭";
+                          });
+                          setSelected([]);
+                          message.success("所选任务已关闭");
+                        },
+                      });
+                    }}
+                  >
+                    关闭任务
+                  </Button>
+                  <Button disabled={!selected.length} onClick={() => message.success("所选任务已标记加急")}>
+                    加急
+                  </Button>
+                </>
+              )}
+              {toolbar}
+            </Space>
+          </div>
+          <Table
+            size="small"
+            columns={columns}
+            dataSource={filter(data)}
+            pagination={pagination}
+            scroll={{ x: isCopy ? 1100 : isProgress ? 1450 : 1660 }}
+            rowSelection={isCopy ? undefined : { selectedRowKeys: selected, onChange: setSelected }}
+            onRow={(r) => ({
+              onClick: () => {
+                setActiveRow(r);
+                openDetail(r, isCopy ? "抄样" : isProgress ? "进度" : "审核");
+              },
+            })}
+            rowClassName={(r) => (r.key === activeRow.key ? "active-row" : "")}
+          />
+          {isCopy && <div className="table-hint">点击记录查看历史配方与配方详情</div>}
+        </section>
+      </>
+    );
+  };
+  const queryHistoryDetail = queryList.length ? (
+    <>
+      <div className="query-history-reference-title">
+        <strong>
+          {queryActive.order}　{queryActive.colorNo}
+        </strong>
+      </div>
+      <h3 className="query-history-reference-section">流程卡详情</h3>
+      <Descriptions
+        className="query-history-reference-details"
+        bordered
+        size="small"
+        column={3}
+        items={[
+          {
+            key: "base",
+            label: "基础信息",
+            children: [queryActive.processCard || queryUsages[0]?.card || "—", queryActive.order, queryActive.product].join(" | "),
+          },
+          {
+            key: "color",
+            label: "颜色信息",
+            children: [queryActive.colorNo, queryActive.color, queryActive.depth].join(" | "),
+          },
+          {
+            key: "greige",
+            label: "白坯信息",
+            children: `门幅${queryActive.greigeWidth || "150cm"} | 克重${queryActive.greigeWeight || "200g"}`,
+          },
+          { key: "bad", label: "不良信息", children: "— | — | —" },
+          {
+            key: "meters",
+            label: "米数信息",
+            children: "预配1匹 | 实配1匹 | 实配100米",
+          },
+          {
+            key: "finished",
+            label: "成品要求",
+            children: "门幅无要求 | 克重无要求",
+          },
+          {
+            key: "processing",
+            label: "加工要求",
+            children: queryActive.processingRequirements || "成品手感：滑爽 | 成品光暗：一般 | 布面起皱风格：否 | 布面光洁：否 | 高牢度：否 | 预缩要求：否",
+            span: 2,
+          },
+          {
+            key: "opening",
+            label: "开卡信息",
+            children: `${queryActive.worker || "水木"} | ${dayjs(queryActive.created).format("YYYY/M/D HH:mm:ss")}`,
+          },
+        ]}
+      />
+      <div className="query-history-reference-layout">
+        <section className="query-history-reference-history">
+          <div className="query-history-reference-heading">
+            <h3 className="query-history-reference-section">配方履历</h3>
+            <Tabs
+              className="query-bath-tabs"
+              activeKey={String(queryBathRatio)}
+              onChange={(key) => {
+                const ratio = Number(key),
+                  prefix = `C${String(ratio).padStart(2, "0")}`;
+                setQueryBathRatio(ratio);
+                setQuerySelectedFormula((current) => (current ? current.replace(/^C\d{2}/, prefix) : ""));
+                setQueryInlineEdit(null);
+              }}
+              items={queryBathOptions.map((ratio) => ({
+                key: String(ratio),
+                label: `浴比 1:${ratio}`,
+              }))}
+            />
+          </div>
+          <Table
+            bordered
+            size="small"
+            tableLayout="fixed"
+            pagination={false}
+            scroll={{ y: 360 }}
+            rowKey={(row) => `${row.formula}-${row.card}`}
+            dataSource={queryHistoryCardRows}
+            onRow={(row) => ({
+              onClick: () => {
+                setQuerySelectedFormula(row.formula);
+                setQueryUsageCard(row.card);
+                setQueryInlineEdit(null);
+              },
+            })}
+            rowClassName={(row) => (row.formula === selectedQueryUsage.formula ? "active-row" : "")}
+            columns={[
+              {
+                title: "配方号",
+                dataIndex: "formula",
+                width: 150,
+                onCell: (row) => ({
+                  rowSpan: row.groupStart ? row.groupSize : 0,
+                  style: { verticalAlign: "middle" },
+                }),
+                render: (value, row) => (
+                  <div className="query-history-reference-formula">
+                    <a
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setQuerySelectedFormula(row.formula);
+                        setQueryUsageCard(row.card);
+                        setQueryInlineEdit(null);
+                        const readVersion = (number: string, version: number): Formula => {
+                          const saved = queryEdits[number] ?? (version === 0 ? queryEdits[queryActive.key] : undefined);
+                          return saved
+                            ? {
+                                bath: saved.bath,
+                                rows: saved.rows.map((item) => ({
+                                  ...item,
+                                  name: "",
+                                  process: item.process ?? "",
+                                  processName: item.processName ?? "",
+                                  ph: item.ph ?? "",
+                                })),
+                              }
+                            : queryFormulaSnapshot(row.bath, version);
+                        };
+                        const previousNumber = row.version > 0 ? row.formula.replace(/v\d+$/, `v${row.version - 1}`) : undefined;
+                        const metadata = queryEdits[row.formula] ?? (row.version === 0 ? queryEdits[queryActive.key] : undefined);
+                        setHistoryFormulaPreview({
+                          applicant: metadata?.applicant ?? queryActive.worker,
+                          appliedAt: metadata?.updatedAt ?? row.created,
+                          reason: metadata?.reason ?? row.reason,
+                          confirmedBy: metadata?.confirmedBy,
+                          confirmedAt: metadata?.confirmedAt,
+                          number: row.formula,
+                          formula: readVersion(row.formula, row.version),
+                          previousNumber,
+                          previous: previousNumber ? readVersion(previousNumber, row.version - 1) : undefined,
+                          confirmed: row.confirmed,
+                        });
+                      }}
+                    >
+                      {value}
+                      {row.isSample && <Tag color="blue">小样</Tag>}
+                      {!row.confirmed && <sup className="copy-formula-unconfirmed">未确认</sup>}
+                    </a>
+                    <small>{row.reason}</small>
+                  </div>
+                ),
+              },
+              {
+                title: "流程卡号",
+                dataIndex: "card",
+                width: 125,
+                ellipsis: true,
+              },
+              {
+                title: "加料",
+                dataIndex: "addition",
+                width: 55,
+                align: "center",
+                render: (value) => `${value}次`,
+              },
+              {
+                title: "不良",
+                dataIndex: "defect",
+                width: 70,
+                align: "center",
+                ellipsis: true,
+              },
+              {
+                title: "半检对样",
+                width: 145,
+                align: "center",
+                render: (_, row) => renderMatchResult(row.halfDirection, row.halfDepth),
+              },
+              {
+                title: "成品对样",
+                width: 145,
+                align: "center",
+                render: (_, row) => renderMatchResult(row.finishedDirection, row.finishedDepth),
+              },
+            ]}
+          />
+        </section>
+        <section className="query-history-reference-current">
+          <div className="query-history-reference-current-heading">
+            <h3>
+              当前订单配方 <span>配方号：{queryRecord.formula}</span>
+            </h3>
+            {queryInlineEdit?.formulaNo === queryRecord.formula ? (
+              <Space size={4}>
+                <Button size="small" onClick={() => setQueryInlineEdit(null)}>
+                  取消
+                </Button>
+                <Button className="query-history-inline-save" type="primary" size="small" onClick={saveQueryInlineEdit}>
+                  保存
+                </Button>
+              </Space>
+            ) : (
+              <Space size={4}>
+                <Button type="link" size="small" icon={<EditOutlined />} onClick={startQueryInlineEdit}>
+                  编辑
+                </Button>
+                <Button type="link" size="small" icon={<PrinterOutlined />} onClick={() => window.print()}>
+                  打印
+                </Button>
+              </Space>
+            )}
+          </div>
+          {queryInlineEdit?.formulaNo === queryRecord.formula ? <DyeFormulaTable compact fitWidth showBath editing formula={queryInlineEdit.formula} onChange={(formula) => setQueryInlineEdit((current) => (current ? { ...current, formula } : current))} /> : <DyeFormulaTable compact fitWidth formula={queryDisplayFormula} />}
+        </section>
+      </div>
+    </>
+  ) : (
+    <Empty description="暂无符合条件的配方" />
+  );
+  const openQueryHistory = (row: LabRecord) => {
+    setActiveRow(row);
+    setHistorySelected(row);
+    setQueryBathRatio(row.ratio === 5 ? 4 : row.ratio);
+    setQueryUsageCard("");
+    setQuerySelectedFormula("");
+    setQueryDetailTab("formula");
+    setQueryInlineEdit(null);
+    setQueryHistoryOpen(true);
+  };
+  const queryPage = () => (
+    <section className="panel query-history-table-page">
+      <div className="query-history-table-filters">
+        <label className="query-history-filter-field">
+          <span>订字：</span>
+          <Input
+            aria-label="配方履历订字"
+            placeholder="请输入订字"
+            value={queryFilters.order}
+            onChange={(event) =>
+              setQueryFilters((current) => ({
+                ...current,
+                order: event.target.value,
+              }))
+            }
+            onPressEnter={applyQueryHistoryFilters}
+          />
+        </label>
+        <label className="query-history-filter-field">
+          <span>色号：</span>
+          <Input
+            aria-label="配方履历色号"
+            placeholder="请输入色号"
+            value={queryFilters.colorNo}
+            onChange={(event) =>
+              setQueryFilters((current) => ({
+                ...current,
+                colorNo: event.target.value,
+              }))
+            }
+            onPressEnter={applyQueryHistoryFilters}
+          />
+        </label>
+        <label className="query-history-filter-field query-history-filter-card">
+          <span>流程卡号：</span>
+          <Input
+            aria-label="配方履历流程卡号"
+            placeholder="请输入流程卡号"
+            value={queryFilters.processCard}
+            onChange={(event) =>
+              setQueryFilters((current) => ({
+                ...current,
+                processCard: event.target.value,
+              }))
+            }
+            onPressEnter={applyQueryHistoryFilters}
+          />
+        </label>
+        <label className="query-history-filter-field query-history-filter-formula">
+          <span>配方号：</span>
+          <Input
+            aria-label="配方履历配方号"
+            placeholder="请输入配方号"
+            value={queryFilters.formula}
+            onChange={(event) =>
+              setQueryFilters((current) => ({
+                ...current,
+                formula: event.target.value,
+              }))
+            }
+            onPressEnter={applyQueryHistoryFilters}
+          />
+        </label>
+        <label className="query-history-filter-field query-history-filter-date">
+          <span>创建时间：</span>
+          <DatePicker.RangePicker aria-label="配方创建时间" value={queryFilterDates} onChange={setQueryFilterDates} format="YYYY-MM-DD" placeholder={["开始日期", "结束日期"]} />
+        </label>
+        <label className="query-history-filter-field query-history-filter-type">
+          <span>配方类型：</span>
+          <Select
+            aria-label="配方履历配方类型"
+            value={queryFilters.formulaType}
+            onChange={(formulaType) => setQueryFilters((current) => ({ ...current, formulaType }))}
+            options={["大样", "小样", "全部"].map((value) => ({
+              value,
+              label: value,
+            }))}
+          />
+        </label>
+        <label className="query-history-filter-field query-history-filter-dm">
+          <span>DM编号：</span>
+          <Input
+            aria-label="配方履历DM编号"
+            placeholder="请输入DM编号"
+            value={queryFilters.dmNo}
+            onChange={(event) =>
+              setQueryFilters((current) => ({
+                ...current,
+                dmNo: event.target.value,
+              }))
+            }
+            onPressEnter={applyQueryHistoryFilters}
+          />
+        </label>
+        <Space size={6} className="query-history-filter-actions">
+          <Button type="primary" onClick={applyQueryHistoryFilters}>
+            查询
+          </Button>
+          <Button onClick={resetQueryHistoryFilters}>重置</Button>
+        </Space>
+      </div>
+      <div className="query-history-table-heading">
+        <h3>配方履历</h3>
+        <Space>
+          <Tag color="blue">共 {queryList.length} 条</Tag>
+          {toolbar}
+        </Space>
+      </div>
+      <Table<LabRecord>
+        bordered
+        size="small"
+        rowKey="key"
+        tableLayout="fixed"
+        dataSource={queryList}
+        pagination={{ pageSize: 10, showTotal: (total) => `共 ${total} 条` }}
+        onRow={(row) => ({ onDoubleClick: () => openQueryHistory(row) })}
+        columns={[
+          {
+            title: "序号",
+            width: 55,
+            align: "center",
+            render: (_, __, index) => index + 1,
+          },
+          { title: "订字", dataIndex: "order", width: 150, ellipsis: true },
+          { title: "色号", dataIndex: "colorNo", width: 130, ellipsis: true },
+          { title: "品名", dataIndex: "product", width: 150, ellipsis: true },
+          {
+            title: "配方号",
+            dataIndex: "formula",
+            width: 150,
+            ellipsis: true,
+            render: (value) => value.replace(/^C\d{2}/, "C").replace(/v\d+$/, ""),
+          },
+          {
+            title: "浴比",
+            dataIndex: "ratio",
+            width: 75,
+            align: "center",
+            render: (value) => `1:${value}`,
+          },
+          {
+            title: "配方类型",
+            width: 85,
+            align: "center",
+            render: (_, row) => row.formulaType ?? "大样",
+          },
+          { title: "创建时间", dataIndex: "created", width: 145 },
+          {
+            title: "操作",
+            width: 90,
+            align: "center",
+            render: (_, row) => (
+              <Button type="link" onClick={() => openQueryHistory(row)}>
+                查看履历
+              </Button>
+            ),
+          },
+        ]}
+      />
+    </section>
+  );
 
- return <div className="app-shell"><GlobalQuickQuery renderFormula={queryPage}/><header><div className="brand"><span className="brand-logo">HM</span><b>航民股份四车间</b></div><nav>{['订单管理','生产管理','试样管理','统计报表'].map(n=><button className={n===module?'active':''} key={n} onClick={()=>{setModule(n);if(n==='试样管理')navigate('试样管理工作台');else if(n==='生产管理')navigate('生产主页');else if(n==='订单管理')navigate('量产订单');else {navigate(n);setSection(n)}}}>{n}</button>)}</nav><Space className="header-user" size={22}><BellOutlined onClick={()=>Modal.info({title:'待办通知',content:'您有 12 条配方待审核，6 条大货任务进行中。'})}/><span><UserOutlined/> 水木</span></Space></header><aside className={collapsed?'collapsed':''}><button className="collapse-toggle" onClick={()=>setCollapsed(!collapsed)}><LeftOutlined rotate={collapsed?180:0}/></button>{module==='订单管理'?<div className="order-nav">{!collapsed&&orderGroups.map((group,i)=><React.Fragment key={group.title}><button className={'nav-group '+(group.pages.includes(page)?'':'secondary')} aria-expanded={orderGroupsOpen[i]} onClick={()=>setOrderGroupsOpen(previous=>previous.map((open,index)=>index===i?!open:open))}>{i===0?<PrinterOutlined/>:<FileTextOutlined/>}{group.title}<DownOutlined rotate={orderGroupsOpen[i]?180:0}/></button>{orderGroupsOpen[i]&&group.pages.map(name=><button key={name} className={'nav-item '+(page===name?'selected':'')} aria-current={page===name?'page':undefined} onClick={()=>navigate(name)}>{name}</button>)}</React.Fragment>)}</div>:module==='生产管理'?<div className="production-nav">{!collapsed&&<><div className={'home-nav '+(page==='生产主页'?'selected':'')} onClick={()=>navigate('生产主页')}><DesktopOutlined/>生产主页</div><div className="nav-group secondary"><DesktopOutlined/> 计划排产 <DownOutlined rotate={180}/></div>{productionPlanMenus.map(name=><div key={name} className={'nav-item '+(page===name?'selected':'')} onClick={()=>navigate(name)}>{name}</div>)}<div className="nav-group"><FileTextOutlined/> 工艺审核 <DownOutlined rotate={180}/></div>{['染色工艺审核','染色配方审核','染色核算','核算查询'].map(n=><div key={n} className={'nav-item '+(page===n?'selected':'')} onClick={()=>navigate(n)}>{pageLabel(n)}</div>)}<div className="nav-group secondary"><FileTextOutlined/> 带布卡 <DownOutlined rotate={180}/></div>{['带布通知','进行中','待验收','待确认','验收记录','带布查询'].map(n=><div key={n} className={'nav-item '+(page===n?'selected':'')} onClick={()=>navigate(n)}>{pageLabel(n)}</div>)}</>}</div>:<><div className={'home-nav '+(page==='流程说明'?'selected':'')} onClick={()=>navigate('流程说明')}><FileTextOutlined/>{!collapsed&&'流程说明'}</div><div className={'home-nav '+(page==='试样管理工作台'?'selected':'')} onClick={()=>navigate('试样管理工作台')}><DesktopOutlined/>{!collapsed&&'试样管理工作台'}</div>{!collapsed&&<><div className="nav-group" onClick={()=>setSection(section==='配方'?'':'配方')}><SkinOutlined/> 打样配方 <DownOutlined rotate={section==='配方'?180:0}/></div>{section==='配方'&&menus.map(n=><div key={n} className={'nav-item '+(page===n?'selected':'')} onClick={()=>navigate(n)}>{pageLabel(n)}</div>)}{['生产配方','统计报表','样卡管理','配方推荐'].map((n,i)=><React.Fragment key={n}><div className="nav-group secondary" onClick={()=>setSection(section===n?'':n)}>{n==='生产配方'?<ExperimentOutlined/>:i===1?<SkinOutlined/>:i===2?<FileTextOutlined/>:<LikeOutlined/>}{n}<DownOutlined rotate={section===n?180:0}/></div>{section===n&&(n==='生产配方'?productionFormulaMenus.map(name=><div key={name} className={'nav-item '+(page===name?'selected':'')} onClick={()=>navigate(name)}>{name}</div>):n==='配方推荐'?<><div className={'nav-item '+(page==='开卡审核'?'selected':'')} onClick={()=>navigate('开卡审核')}>开卡审核</div><div className="nav-item" onClick={()=>navigate(n)}>智能推荐</div></>:<div className="nav-item" onClick={()=>navigate(n)}>{n==='统计报表'?'班组统计':'样卡查询'}</div>)}</React.Fragment>)}</>}</>}</aside><div className={'workspace '+(collapsed?'wide':'')}><div className="page-tabs">{tabs.map(t=><div key={t} className={t===page?'active':''} onClick={()=>navigate(t)}>{pageLabel(t)}<CloseOutlined onClick={e=>{e.stopPropagation();const next=tabs.filter(x=>x!==t);setTabs(next);if(page===t)navigate(next.at(-1)||'试样管理工作台')}}/></div>)}<span className="tab-more">···</span></div><main className={['试样管理工作台','生产主页'].includes(page)?'overview-main':''}>{page==='生产主页'?<ProductionHome onOpenPage={navigate}/>:page==='流程说明'?<WorkflowGuide onOpenTab={openWorkflowTab}/>:page==='开卡审核'?<CardOpeningReview onWarehouse={()=>navigate('进仓确认')}/>:page==='进仓确认'?<WarehouseConfirmation/>:page==='助剂规则'?<AuxiliaryRules/>:page==='三车间减量率'?<WorkshopReductionRate/>:page==='染缸计划'?<DyeSchedule/>:page==='染色工艺审核'?<DyeProcessReview onChanges={()=>navigate('配方变更')}/>:page==='染色配方审核'?<DyeFormulaReview/>:page==='试样管理工作台'?<Workbench currentTeam={shift} formulaAuditCount={records.filter(record=>record.status==='待审核').length} onNavigate={openWorkbenchPage} onOpenPage={navigate}/>:page==='不良配方'?<BadFormulas onMatching={card=>{setScan(card);setMatched(true);navigate('对样')}} onSample={()=>navigate('打样')}/>:page==='打样'?<SamplingPage onMatching={card=>{setScan(card);setMatched(true);navigate('对样')}} onQuery={()=>openDetail(progressRecords[1],'进度')}/>:page==='配方变更'?<FormulaChangeReview/>:page==='配方确认'?<FormulaConfirmationPage records={records}/>:page==='配方确认新'?<FormulaConfirmationNewPage records={records}/>:page==='抄样'?copyPage():page==='配方审核'?<FormulaAuditPage records={records} onAudit={audit} renderFormula={(row,reductionRate,onOpenReduction)=>formulaTable(true,false,auditFormulaEdits[row.key],reductionRate,onOpenReduction)} onEdit={row=>{setAuditEditingKey(row.key);setDraft(auditFormulaEdits[row.key]??bigFormulaRows)}}/>:page==='打样进度'?listPage():page==='配方查询'?queryPage():page==='对样'?(matched?<MatchingDetail onDefects={()=>navigate('不良配方')} key={scan.trim()} processCard={scan.trim()} onBack={()=>{setMatched(false);setScan('')}}/>:<section className="panel match-panel"><div className="match-tools">{toolbar}</div><button className="scan-prompt" onClick={()=>setScanOpen(true)}><BarcodeOutlined/> 请扫描流程卡开始对样</button><Badge count={21} className="floating-query"><Button onClick={()=>openDetail(progressRecords[1],'加料')}><ExperimentOutlined/><span>加料查询</span></Button></Badge></section>):<section className="panel fallback"><h3>{page}</h3><Empty description="当前暂无记录"/><Button type="primary" onClick={()=>navigate('试样管理工作台')}>返回试样工作台</Button></section>}</main></div>
- <Drawer rootClassName={detailKind==='抄样'?'copy-history-drawer':''} open={!!detail} width={detailKind==='抄样'?'72%':'80%'} title={detailKind==='抄样'?undefined:`${detail?.order||''}　${detail?.colorNo||''}`} onClose={()=>setDetail(null)} footer={<div className="drawer-footer">{detailKind==='审核'?<><Button danger type="primary" onClick={()=>detail&&audit(detail,false)}>未通过</Button><Button type="primary" onClick={()=>window.print()}>打 印</Button><Button type="primary" onClick={()=>{if(detail)audit(detail,true);window.print()}}>通过并打印</Button></>:<><Button icon={<EditOutlined/>} onClick={()=>{setDraft(formula);setEditing(true)}}>编辑</Button><Button type="primary" onClick={()=>{setDetail(null);navigate('打样');message.success('已转入打样任务')}}>转打样</Button><Button type="primary" onClick={()=>{message.success('配方已提交审核');setDetail(null)}}>提交审核</Button></>}</div>}>
- {detailKind==='抄样'?copyDetails():<><Tabs activeKey={detailTab} onChange={setDetailTab} items={['配方','打样过程','基础信息'].map(label=>({key:label,label:label==='配方'?'大样配方':label}))}/>{detailTab==='配方'?<><div className="detail-actions"><Button type="primary" onClick={()=>{setDetail(null);navigate('配方查询')}}>查看配方</Button><Button type="primary" onClick={()=>{setDraft(bigFormulaRows);setEditing(true)}}>引用减量率</Button><Button type="primary" onClick={()=>{setDraft(detailKind==='审核'?bigFormulaRows:formula);setEditing(true)}}>编辑配方</Button></div>{formulaTable(detailKind==='审核')}</>:detailTab==='打样过程'?<Table size="small" bordered pagination={false} dataSource={[1,2,3,4].map(n=>({key:n,round:`第${n}枪`,time:`2026-09-03 11:${40+n}`,worker:detail?.worker,result:n===4?'完成':'调整中'}))} columns={[col('枪次','round'),col('操作时间','time'),col('打样员','worker'),col('结果','result')]}/>:<Descriptions bordered column={2} items={detail?Object.entries({订字:detail.order,色号:detail.colorNo,品名:detail.product,颜色:detail.color,配方号:detail.formula,打样员:detail.worker,创建时间:detail.created,状态:detail.status}).map(([label,children])=>({key:label,label,children})):[]}/>}</>}
- </Drawer><Modal className="query-history-modal" width="calc(100vw - 40px)" style={{top:12}} open={queryHistoryOpen} onCancel={()=>setQueryHistoryOpen(false)} footer={null}>{queryHistoryDetail}</Modal><Modal className="query-accounting-modal" title={<div className="query-accounting-title"><span>核算配方</span><small>配方号：<b>{accountingUsage?.formula??'—'}</b></small><small>浴比：<b>1:{accountingUsage?.bath??queryBathRatio}</b></small></div>} width={1180} open={!!queryAccountingCard} onCancel={()=>setQueryAccountingCard(null)} footer={<Button onClick={()=>setQueryAccountingCard(null)}>关闭</Button>}><Table className="query-accounting-formula" bordered size="small" pagination={false} rowKey="key" tableLayout="fixed" scroll={{x:980}} dataSource={accountingFormulaRows} rowClassName={row=>row.stage==='1'?'accounting-stage-one':''} columns={[{title:'阶段',dataIndex:'stage',width:66,align:'center',onCell:accountingMerge},{title:'染助剂代码',dataIndex:'code',width:130,align:'center'},{title:'比例',dataIndex:'ratio',width:100,align:'center'},{title:'算法',dataIndex:'algorithm',width:100,align:'center'},{title:'单位',dataIndex:'unit',width:100,align:'center'},{title:'工艺',dataIndex:'process',width:145,align:'center',onCell:accountingMerge,render:value=><span className="accounting-process">{value}</span>},{title:'PH值',dataIndex:'ph',width:120,align:'center',onCell:accountingMerge},{title:<span className="accounting-addition-heading">加料1<small>正常加料<br/>偏黄; 正常</small></span>,dataIndex:'addition',width:120,align:'center'},{title:'加料1工艺',dataIndex:'additionProcess',width:130,align:'center',onCell:accountingMerge}]}/></Modal>{queryEditing&&<QueryFormulaEditor record={queryEditing} initial={queryFormula} onClose={()=>setQueryEditing(null)} onSave={value=>{const next={...queryEdits,[queryEditing.formula]:value};localStorage.setItem('lab-query-formula-edits',JSON.stringify(next));setQueryEdits(next);setQueryEditing(null);message.success('配方及变更原因已保存')}}/>}<Modal title={<Space>配方详情 <span>{historyFormulaPreview?.number}</span>{historyFormulaPreview&&!historyFormulaPreview.confirmed&&<Tag color="orange">未确认</Tag>}</Space>} open={!!historyFormulaPreview} width="90vw" style={{top:40}} styles={{body:{maxHeight:"calc(100vh - 180px)",overflow:"auto"}}} onCancel={()=>setHistoryFormulaPreview(null)} footer={<Button onClick={()=>setHistoryFormulaPreview(null)}>关闭</Button>}>{historyFormulaPreview&&<><Descriptions bordered size="small" column={5} items={[
- {key:'applicant',label:'申请人',children:historyFormulaPreview.applicant||'未记录'},
- {key:'appliedAt',label:'申请时间',children:dayjs(historyFormulaPreview.appliedAt).format('YYYY-MM-DD HH:mm:ss')},
- {key:'reason',label:'变更原因',children:historyFormulaPreview.reason||'未记录'},
- {key:'confirmedBy',label:'确认人',children:historyFormulaPreview.confirmed?(historyFormulaPreview.confirmedBy||'未记录'):'待确认'},
- {key:'confirmedAt',label:'确认时间',children:historyFormulaPreview.confirmed?(historyFormulaPreview.confirmedAt?dayjs(historyFormulaPreview.confirmedAt).format('YYYY-MM-DD HH:mm:ss'):'未记录'):'待确认'},
- ]}/><div className="formula-compare-grid"><section><h3>上一个版本 {historyFormulaPreview.previousNumber}</h3>{historyFormulaPreview.previous?<DyeFormulaTable compact fitWidth showBath formula={historyFormulaPreview.previous} original={historyFormulaPreview.formula}/>:<Empty description="初始版本，暂无上一个版本"/>}</section><section><h3>当前版本 {historyFormulaPreview.number}</h3><DyeFormulaTable compact fitWidth showBath formula={historyFormulaPreview.formula} original={historyFormulaPreview.previous}/></section></div></>}</Modal><QueryFormulaModal detail={queryFormulaDetail} onClose={()=>setQueryFormulaDetail(null)}/><CopyFormulaModal record={copyFormulaDetail} onClose={()=>setCopyFormulaDetail(null)}/><Modal title="编辑配方" open={editing} width={1000} onCancel={()=>{setEditing(false);setAuditEditingKey(null)}} onOk={()=>{if(auditEditingKey){setAuditFormulaEdits(previous=>({...previous,[auditEditingKey]:draft}));setAuditEditingKey(null);setEditing(false);message.success('配方已保存');return}setFormula(draft);localStorage.setItem('lab-formula',JSON.stringify(draft));setEditing(false);message.success('配方已保存到本地')}} okText="保存配方">{formulaTable(false,true)}</Modal><Modal title="扫描流程卡" open={scanOpen} onCancel={()=>setScanOpen(false)} onOk={startMatching} okText="开始对样"><p className="muted">请扫描条码或输入流程卡号，演示编号：Y2606302501</p><Input autoFocus prefix={<BarcodeOutlined/>} value={scan} onChange={e=>setScan(e.target.value)} placeholder="请输入流程卡号" onPressEnter={startMatching}/></Modal></div>
+  return (
+    <div className="app-shell">
+      <GlobalQuickQuery renderFormula={queryPage} />
+      <header>
+        <div className="brand">
+          <span className="brand-logo">HM</span>
+          <b>航民股份四车间</b>
+        </div>
+        <nav>
+          {["订单管理", "生产管理", "试样管理", "统计报表"].map((n) => (
+            <button
+              className={n === module ? "active" : ""}
+              key={n}
+              onClick={() => {
+                setModule(n);
+                if (n === "试样管理") navigate("试样管理工作台");
+                else if (n === "生产管理") navigate("生产主页");
+                else if (n === "订单管理") navigate("量产订单");
+                else {
+                  navigate(n);
+                  setSection(n);
+                }
+              }}
+            >
+              {n}
+            </button>
+          ))}
+        </nav>
+        <Space className="header-user" size={22}>
+          <BellOutlined
+            onClick={() =>
+              Modal.info({
+                title: "待办通知",
+                content: "您有 12 条配方待审核，6 条大货任务进行中。",
+              })
+            }
+          />
+          <span>
+            <UserOutlined /> 水木
+          </span>
+        </Space>
+      </header>
+      <aside className={collapsed ? "collapsed" : ""}>
+        <button className="collapse-toggle" onClick={() => setCollapsed(!collapsed)}>
+          <LeftOutlined rotate={collapsed ? 180 : 0} />
+        </button>
+        {module === "订单管理" ? (
+          <div className="order-nav">
+            {!collapsed &&
+              orderGroups.map((group, i) => (
+                <React.Fragment key={group.title}>
+                  <button className={"nav-group " + (group.pages.includes(page) ? "" : "secondary")} aria-expanded={orderGroupsOpen[i]} onClick={() => setOrderGroupsOpen((previous) => previous.map((open, index) => (index === i ? !open : open)))}>
+                    {i === 0 ? <PrinterOutlined /> : <FileTextOutlined />}
+                    {group.title}
+                    <DownOutlined rotate={orderGroupsOpen[i] ? 180 : 0} />
+                  </button>
+                  {orderGroupsOpen[i] &&
+                    group.pages.map((name) => (
+                      <button key={name} className={"nav-item " + (page === name ? "selected" : "")} aria-current={page === name ? "page" : undefined} onClick={() => navigate(name)}>
+                        {name}
+                      </button>
+                    ))}
+                </React.Fragment>
+              ))}
+          </div>
+        ) : module === "生产管理" ? (
+          <div className="production-nav">
+            {!collapsed && (
+              <>
+                <div className={"home-nav " + (page === "生产主页" ? "selected" : "")} onClick={() => navigate("生产主页")}>
+                  <DesktopOutlined />
+                  生产主页
+                </div>
+                <div className="nav-group secondary">
+                  <DesktopOutlined /> 计划排产 <DownOutlined rotate={180} />
+                </div>
+                {productionPlanMenus.map((name) => (
+                  <div key={name} className={"nav-item " + (page === name ? "selected" : "")} onClick={() => navigate(name)}>
+                    {name}
+                  </div>
+                ))}
+                <div className="nav-group">
+                  <FileTextOutlined /> 工艺审核 <DownOutlined rotate={180} />
+                </div>
+                {["染色工艺审核", "染色配方审核", "染色核算", "核算查询"].map((n) => (
+                  <div key={n} className={"nav-item " + (page === n ? "selected" : "")} onClick={() => navigate(n)}>
+                    {pageLabel(n)}
+                  </div>
+                ))}
+                <div className="nav-group secondary">
+                  <FileTextOutlined /> 带布卡 <DownOutlined rotate={180} />
+                </div>
+                {["带布通知", "进行中", "待验收", "待确认", "验收记录", "带布查询"].map((n) => (
+                  <div key={n} className={"nav-item " + (page === n ? "selected" : "")} onClick={() => navigate(n)}>
+                    {pageLabel(n)}
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className={"home-nav " + (page === "流程说明" ? "selected" : "")} onClick={() => navigate("流程说明")}>
+              <FileTextOutlined />
+              {!collapsed && "流程说明"}
+            </div>
+            <div className={"home-nav " + (page === "试样管理工作台" ? "selected" : "")} onClick={() => navigate("试样管理工作台")}>
+              <DesktopOutlined />
+              {!collapsed && "试样管理工作台"}
+            </div>
+            {!collapsed && (
+              <>
+                <div className="nav-group" onClick={() => setSection(section === "配方" ? "" : "配方")}>
+                  <SkinOutlined /> 打样配方 <DownOutlined rotate={section === "配方" ? 180 : 0} />
+                </div>
+                {section === "配方" &&
+                  menus.map((n) => (
+                    <div key={n} className={"nav-item " + (page === n ? "selected" : "")} onClick={() => navigate(n)}>
+                      {pageLabel(n)}
+                    </div>
+                  ))}
+                {["生产配方", "统计报表", "样卡管理", "配方推荐"].map((n, i) => (
+                  <React.Fragment key={n}>
+                    <div className="nav-group secondary" onClick={() => setSection(section === n ? "" : n)}>
+                      {n === "生产配方" ? <ExperimentOutlined /> : i === 1 ? <SkinOutlined /> : i === 2 ? <FileTextOutlined /> : <LikeOutlined />}
+                      {n}
+                      <DownOutlined rotate={section === n ? 180 : 0} />
+                    </div>
+                    {section === n &&
+                      (n === "生产配方" ? (
+                        productionFormulaMenus.map((name) => (
+                          <div key={name} className={"nav-item " + (page === name ? "selected" : "")} onClick={() => navigate(name)}>
+                            {name}
+                          </div>
+                        ))
+                      ) : n === "配方推荐" ? (
+                        <>
+                          <div className={"nav-item " + (page === "开卡审核" ? "selected" : "")} onClick={() => navigate("开卡审核")}>
+                            开卡审核
+                          </div>
+                          <div className="nav-item" onClick={() => navigate(n)}>
+                            智能推荐
+                          </div>
+                        </>
+                      ) : (
+                        <div className="nav-item" onClick={() => navigate(n)}>
+                          {n === "统计报表" ? "班组统计" : "样卡查询"}
+                        </div>
+                      ))}
+                  </React.Fragment>
+                ))}
+                <div className={"nav-item component-standards-nav " + (page === "组件规范" ? "selected" : "")} onClick={() => navigate("组件规范")}>
+                  组件规范
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </aside>
+      <ConfigProvider theme={module === "试样管理" ? samplingAntTheme : undefined}>
+        <div className={"workspace " + (collapsed ? "wide" : "") + (module === "试样管理" ? " sampling-ant-design" : "")}>
+          <div className="page-tabs">
+            {tabs.map((t) => (
+              <div key={t} className={t === page ? "active" : ""} onClick={() => navigate(t)}>
+                {pageLabel(t)}
+                <CloseOutlined
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const next = tabs.filter((x) => x !== t);
+                    setTabs(next);
+                    if (page === t) navigate(next.at(-1) || "试样管理工作台");
+                  }}
+                />
+              </div>
+            ))}
+            <span className="tab-more">···</span>
+          </div>
+          <main className={["试样管理工作台", "生产主页"].includes(page) ? "overview-main" : ""}>
+            {page === "生产主页" ? (
+              <ProductionHome onOpenPage={navigate} />
+            ) : page === "流程说明" ? (
+              <WorkflowGuide onOpenTab={openWorkflowTab} />
+            ) : page === "开卡审核" ? (
+              <CardOpeningReview onWarehouse={() => navigate("进仓确认")} />
+            ) : page === "进仓确认" ? (
+              <WarehouseConfirmation />
+            ) : page === "助剂规则" ? (
+              <AuxiliaryRules />
+            ) : page === "三车间减量率" ? (
+              <WorkshopReductionRate />
+            ) : page === "染缸计划" ? (
+              <DyeSchedule />
+            ) : page === "染色工艺审核" ? (
+              <DyeProcessReview onChanges={() => navigate("配方变更")} />
+            ) : page === "染色配方审核" ? (
+              <DyeFormulaReview />
+            ) : page === "试样管理工作台" ? (
+              <Workbench currentTeam={shift} formulaAuditCount={records.filter((record) => record.status === "待审核").length} onNavigate={openWorkbenchPage} onOpenPage={navigate} />
+            ) : page === "组件规范" ? (
+              <ComponentStandardsPage />
+            ) : page === "不良配方" ? (
+              <BadFormulas
+                onMatching={(card) => {
+                  setScan(card);
+                  setMatched(true);
+                  navigate("对样");
+                }}
+                onSample={() => navigate("打样")}
+              />
+            ) : page === "打样" ? (
+              <SamplingPage
+                onMatching={(card) => {
+                  setScan(card);
+                  setMatched(true);
+                  navigate("对样");
+                }}
+                onQuery={() => openDetail(progressRecords[1], "进度")}
+              />
+            ) : page === "配方变更" ? (
+              <FormulaChangeReview />
+            ) : page === "配方确认" ? (
+              <FormulaConfirmationPage records={records} />
+            ) : page === "配方确认新" ? (
+              <FormulaConfirmationNewPage records={records} />
+            ) : page === "抄样" ? (
+              copyPage()
+            ) : page === "配方审核" ? (
+              <FormulaAuditPage
+                records={records}
+                onAudit={audit}
+                renderFormula={(row, reductionRate, onOpenReduction) => formulaTable(true, false, auditFormulaEdits[row.key], reductionRate, onOpenReduction)}
+                onEdit={(row) => {
+                  setAuditEditingKey(row.key);
+                  setDraft(auditFormulaEdits[row.key] ?? bigFormulaRows);
+                }}
+              />
+            ) : page === "打样进度" ? (
+              listPage()
+            ) : page === "配方查询" ? (
+              queryPage()
+            ) : page === "对样" ? (
+              matched ? (
+                <MatchingDetail
+                  onDefects={() => navigate("不良配方")}
+                  key={scan.trim()}
+                  processCard={scan.trim()}
+                  onBack={() => {
+                    setMatched(false);
+                    setScan("");
+                  }}
+                />
+              ) : (
+                <section className="panel match-panel">
+                  <div className="match-tools">{toolbar}</div>
+                  <button className="scan-prompt" onClick={() => setScanOpen(true)}>
+                    <BarcodeOutlined /> 请扫描流程卡开始对样
+                  </button>
+                  <Badge count={21} className="floating-query">
+                    <Button onClick={() => openDetail(progressRecords[1], "加料")}>
+                      <ExperimentOutlined />
+                      <span>加料查询</span>
+                    </Button>
+                  </Badge>
+                </section>
+              )
+            ) : (
+              <section className="panel fallback">
+                <h3>{page}</h3>
+                <Empty description="当前暂无记录" />
+                <Button type="primary" onClick={() => navigate("试样管理工作台")}>
+                  返回试样工作台
+                </Button>
+              </section>
+            )}
+          </main>
+        </div>
+        <Drawer
+          rootClassName={detailKind === "抄样" ? "copy-history-drawer" : ""}
+          open={!!detail}
+          width={detailKind === "抄样" ? "72%" : "80%"}
+          title={detailKind === "抄样" ? undefined : `${detail?.order || ""}　${detail?.colorNo || ""}`}
+          onClose={() => setDetail(null)}
+          footer={
+            <div className="drawer-footer">
+              {detailKind === "审核" ? (
+                <>
+                  <Button danger type="primary" onClick={() => detail && audit(detail, false)}>
+                    未通过
+                  </Button>
+                  <Button type="primary" onClick={() => window.print()}>
+                    打 印
+                  </Button>
+                  <Button
+                    type="primary"
+                    onClick={() => {
+                      if (detail) audit(detail, true);
+                      window.print();
+                    }}
+                  >
+                    通过并打印
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    icon={<EditOutlined />}
+                    onClick={() => {
+                      setDraft(formula);
+                      setEditing(true);
+                    }}
+                  >
+                    编辑
+                  </Button>
+                  <Button
+                    type="primary"
+                    onClick={() => {
+                      setDetail(null);
+                      navigate("打样");
+                      message.success("已转入打样任务");
+                    }}
+                  >
+                    转打样
+                  </Button>
+                  <Button
+                    type="primary"
+                    onClick={() => {
+                      message.success("配方已提交审核");
+                      setDetail(null);
+                    }}
+                  >
+                    提交审核
+                  </Button>
+                </>
+              )}
+            </div>
+          }
+        >
+          {detailKind === "抄样" ? (
+            copyDetails()
+          ) : (
+            <>
+              <Tabs
+                activeKey={detailTab}
+                onChange={setDetailTab}
+                items={["配方", "打样过程", "基础信息"].map((label) => ({
+                  key: label,
+                  label: label === "配方" ? "大样配方" : label,
+                }))}
+              />
+              {detailTab === "配方" ? (
+                <>
+                  <div className="detail-actions">
+                    <Button
+                      type="primary"
+                      onClick={() => {
+                        setDetail(null);
+                        navigate("配方查询");
+                      }}
+                    >
+                      查看配方
+                    </Button>
+                    <Button
+                      type="primary"
+                      onClick={() => {
+                        setDraft(bigFormulaRows);
+                        setEditing(true);
+                      }}
+                    >
+                      引用减量率
+                    </Button>
+                    <Button
+                      type="primary"
+                      onClick={() => {
+                        setDraft(detailKind === "审核" ? bigFormulaRows : formula);
+                        setEditing(true);
+                      }}
+                    >
+                      编辑配方
+                    </Button>
+                  </div>
+                  {formulaTable(detailKind === "审核")}
+                </>
+              ) : detailTab === "打样过程" ? (
+                <Table
+                  size="small"
+                  bordered
+                  pagination={false}
+                  dataSource={[1, 2, 3, 4].map((n) => ({
+                    key: n,
+                    round: `第${n}枪`,
+                    time: `2026-09-03 11:${40 + n}`,
+                    worker: detail?.worker,
+                    result: n === 4 ? "完成" : "调整中",
+                  }))}
+                  columns={[col("枪次", "round"), col("操作时间", "time"), col("打样员", "worker"), col("结果", "result")]}
+                />
+              ) : (
+                <Descriptions
+                  bordered
+                  column={2}
+                  items={
+                    detail
+                      ? Object.entries({
+                          订字: detail.order,
+                          色号: detail.colorNo,
+                          品名: detail.product,
+                          颜色: detail.color,
+                          配方号: detail.formula,
+                          打样员: detail.worker,
+                          创建时间: detail.created,
+                          状态: detail.status,
+                        }).map(([label, children]) => ({
+                          key: label,
+                          label,
+                          children,
+                        }))
+                      : []
+                  }
+                />
+              )}
+            </>
+          )}
+        </Drawer>
+        <Modal className="query-history-modal" width="calc(100vw - 40px)" style={{ top: 12 }} open={queryHistoryOpen} onCancel={() => setQueryHistoryOpen(false)} footer={null}>
+          {queryHistoryDetail}
+        </Modal>
+        <Modal
+          className="query-accounting-modal"
+          title={
+            <div className="query-accounting-title">
+              <span>核算配方</span>
+              <small>
+                配方号：<b>{accountingUsage?.formula ?? "—"}</b>
+              </small>
+              <small>
+                浴比：<b>1:{accountingUsage?.bath ?? queryBathRatio}</b>
+              </small>
+            </div>
+          }
+          width={1180}
+          open={!!queryAccountingCard}
+          onCancel={() => setQueryAccountingCard(null)}
+          footer={<Button onClick={() => setQueryAccountingCard(null)}>关闭</Button>}
+        >
+          <Table
+            className="query-accounting-formula"
+            bordered
+            size="small"
+            pagination={false}
+            rowKey="key"
+            tableLayout="fixed"
+            scroll={{ x: 980 }}
+            dataSource={accountingFormulaRows}
+            rowClassName={(row) => (row.stage === "1" ? "accounting-stage-one" : "")}
+            columns={[
+              {
+                title: "阶段",
+                dataIndex: "stage",
+                width: 66,
+                align: "center",
+                onCell: accountingMerge,
+              },
+              {
+                title: "染助剂代码",
+                dataIndex: "code",
+                width: 130,
+                align: "center",
+              },
+              {
+                title: "比例",
+                dataIndex: "ratio",
+                width: 100,
+                align: "center",
+              },
+              {
+                title: "算法",
+                dataIndex: "algorithm",
+                width: 100,
+                align: "center",
+              },
+              { title: "单位", dataIndex: "unit", width: 100, align: "center" },
+              {
+                title: "工艺",
+                dataIndex: "process",
+                width: 145,
+                align: "center",
+                onCell: accountingMerge,
+                render: (value) => <span className="accounting-process">{value}</span>,
+              },
+              {
+                title: "PH值",
+                dataIndex: "ph",
+                width: 120,
+                align: "center",
+                onCell: accountingMerge,
+              },
+              {
+                title: (
+                  <span className="accounting-addition-heading">
+                    加料1
+                    <small>
+                      正常加料
+                      <br />
+                      偏黄; 正常
+                    </small>
+                  </span>
+                ),
+                dataIndex: "addition",
+                width: 120,
+                align: "center",
+              },
+              {
+                title: "加料1工艺",
+                dataIndex: "additionProcess",
+                width: 130,
+                align: "center",
+                onCell: accountingMerge,
+              },
+            ]}
+          />
+        </Modal>
+        {queryEditing && (
+          <QueryFormulaEditor
+            record={queryEditing}
+            initial={queryFormula}
+            onClose={() => setQueryEditing(null)}
+            onSave={(value) => {
+              const next = { ...queryEdits, [queryEditing.formula]: value };
+              localStorage.setItem("lab-query-formula-edits", JSON.stringify(next));
+              setQueryEdits(next);
+              setQueryEditing(null);
+              message.success("配方及变更原因已保存");
+            }}
+          />
+        )}
+        <Modal
+          title={
+            <Space>
+              配方详情 <span>{historyFormulaPreview?.number}</span>
+              {historyFormulaPreview && !historyFormulaPreview.confirmed && <Tag color="orange">未确认</Tag>}
+            </Space>
+          }
+          open={!!historyFormulaPreview}
+          width="90vw"
+          style={{ top: 40 }}
+          styles={{
+            body: { maxHeight: "calc(100vh - 180px)", overflow: "auto" },
+          }}
+          onCancel={() => setHistoryFormulaPreview(null)}
+          footer={<Button onClick={() => setHistoryFormulaPreview(null)}>关闭</Button>}
+        >
+          {historyFormulaPreview && (
+            <>
+              <Descriptions
+                bordered
+                size="small"
+                column={5}
+                items={[
+                  {
+                    key: "applicant",
+                    label: "申请人",
+                    children: historyFormulaPreview.applicant || "未记录",
+                  },
+                  {
+                    key: "appliedAt",
+                    label: "申请时间",
+                    children: dayjs(historyFormulaPreview.appliedAt).format("YYYY-MM-DD HH:mm:ss"),
+                  },
+                  {
+                    key: "reason",
+                    label: "变更原因",
+                    children: historyFormulaPreview.reason || "未记录",
+                  },
+                  {
+                    key: "confirmedBy",
+                    label: "确认人",
+                    children: historyFormulaPreview.confirmed ? historyFormulaPreview.confirmedBy || "未记录" : "待确认",
+                  },
+                  {
+                    key: "confirmedAt",
+                    label: "确认时间",
+                    children: historyFormulaPreview.confirmed ? (historyFormulaPreview.confirmedAt ? dayjs(historyFormulaPreview.confirmedAt).format("YYYY-MM-DD HH:mm:ss") : "未记录") : "待确认",
+                  },
+                ]}
+              />
+              <div className="formula-compare-grid">
+                <section>
+                  <h3>上一个版本 {historyFormulaPreview.previousNumber}</h3>
+                  {historyFormulaPreview.previous ? <DyeFormulaTable compact fitWidth showBath formula={historyFormulaPreview.previous} original={historyFormulaPreview.formula} /> : <Empty description="初始版本，暂无上一个版本" />}
+                </section>
+                <section>
+                  <h3>当前版本 {historyFormulaPreview.number}</h3>
+                  <DyeFormulaTable compact fitWidth showBath formula={historyFormulaPreview.formula} original={historyFormulaPreview.previous} />
+                </section>
+              </div>
+            </>
+          )}
+        </Modal>
+        <QueryFormulaModal detail={queryFormulaDetail} onClose={() => setQueryFormulaDetail(null)} />
+        <CopyFormulaModal record={copyFormulaDetail} onClose={() => setCopyFormulaDetail(null)} />
+        <Modal
+          title="编辑配方"
+          open={editing}
+          width={1000}
+          onCancel={() => {
+            setEditing(false);
+            setAuditEditingKey(null);
+          }}
+          onOk={() => {
+            if (auditEditingKey) {
+              setAuditFormulaEdits((previous) => ({
+                ...previous,
+                [auditEditingKey]: draft,
+              }));
+              setAuditEditingKey(null);
+              setEditing(false);
+              message.success("配方已保存");
+              return;
+            }
+            setFormula(draft);
+            localStorage.setItem("lab-formula", JSON.stringify(draft));
+            setEditing(false);
+            message.success("配方已保存到本地");
+          }}
+          okText="保存配方"
+        >
+          {formulaTable(false, true)}
+        </Modal>
+        <Modal title="扫描流程卡" open={scanOpen} onCancel={() => setScanOpen(false)} onOk={startMatching} okText="开始对样">
+          <p className="muted">请扫描条码或输入流程卡号，演示编号：Y2606302501</p>
+          <Input autoFocus prefix={<BarcodeOutlined />} value={scan} onChange={(e) => setScan(e.target.value)} placeholder="请输入流程卡号" onPressEnter={startMatching} />
+        </Modal>
+      </ConfigProvider>
+    </div>
+  );
 }
-createRoot(document.getElementById('root')!).render(<ConfigProvider locale={zhCN} componentSize="small" theme={{token:{colorPrimary:'#1677ff',borderRadius:3,fontSize:12,colorText:'#3c3c3c',controlHeight:28},components:{Table:{headerBg:'#f0f0f0',headerColor:'#3c3c3c',cellPaddingBlockSM:6,cellPaddingInlineSM:8,borderColor:'#c7c7c7'},Tabs:{horizontalItemGutter:24},Drawer:{paddingLG:18}}}}><AntApp><Main/></AntApp></ConfigProvider>);
+createRoot(document.getElementById("root")!).render(
+  <ConfigProvider
+    locale={zhCN}
+    componentSize="small"
+    theme={{
+      token: {
+        colorPrimary: "#1677ff",
+        borderRadius: 3,
+        fontSize: 12,
+        colorText: "#3c3c3c",
+        controlHeight: 28,
+      },
+      components: {
+        Table: {
+          headerBg: "#f0f0f0",
+          headerColor: "#3c3c3c",
+          cellPaddingBlockSM: 6,
+          cellPaddingInlineSM: 8,
+          borderColor: "#c7c7c7",
+        },
+        Tabs: { horizontalItemGutter: 24 },
+        Drawer: { paddingLG: 18 },
+      },
+    }}
+  >
+    <AntApp>
+      <Main />
+    </AntApp>
+  </ConfigProvider>,
+);

@@ -1,0 +1,152 @@
+.component-standards-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 1680px;
+  margin: 0 auto;
+  color: #1f1f1f;
+}
+.component-standards-nav {
+  margin-top: 8px !important;
+  box-shadow: inset 0 1px #f0f0f0;
+}
+.component-standards-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 4px 0 2px;
+  background: transparent;
+  position: static;
+  height: auto;
+  color: inherit;
+}
+.component-standards-header h1 {
+  margin: 8px 0 0;
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
+}
+.component-standards-header .ant-tag {
+  margin-bottom: 3px;
+}
+.component-standards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.component-standards-page .ant-card {
+  border-color: #f0f0f0;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+.component-standards-page .ant-card-head {
+  min-height: 42px;
+  padding-inline: 16px;
+  border-bottom-color: #f0f0f0;
+}
+.component-standards-page .ant-card-head-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+.component-standards-page .ant-card-body {
+  padding: 16px;
+}
+.component-token-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.component-token {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 9px;
+  align-items: center;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+  background: #fafafa;
+}
+.component-token i {
+  grid-row: 1/3;
+  width: 28px;
+  height: 28px;
+  border-radius: 5px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+.component-token i.primary {
+  background: #1677ff;
+}
+.component-token i.success {
+  background: #52c41a;
+}
+.component-token i.warning {
+  background: #faad14;
+}
+.component-token i.error {
+  background: #ff4d4f;
+}
+.component-token i.text {
+  background: #1f1f1f;
+}
+.component-token i.border {
+  background: #d9d9d9;
+}
+.component-token span {
+  font-weight: 500;
+}
+.component-token code {
+  color: #8c8c8c;
+  font-size: 11px;
+}
+.component-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0 16px;
+}
+.component-form .ant-form-item {
+  margin-bottom: 14px;
+}
+.component-form .ant-form-item-label {
+  padding-bottom: 5px;
+}
+.component-form .ant-picker,
+.component-form .ant-input-number,
+.component-form .ant-select {
+  width: 100%;
+}
+.component-feedback {
+  width: 100%;
+}
+.component-feedback > .ant-alert {
+  width: 100%;
+}
+.component-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+@media (max-width: 1100px) {
+  .component-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .component-token-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 760px) {
+  .component-standards-grid {
+    grid-template-columns: 1fr;
+  }
+  .component-form {
+    grid-template-columns: 1fr;
+  }
+  .component-token-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .component-standards-page .ant-card-body {
+    padding: 12px;
+  }
+}
