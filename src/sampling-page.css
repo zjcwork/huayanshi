@@ -87,7 +87,7 @@
 .sampling-material-heading{padding:8px 12px;gap:12px}.sampling-material-heading strong{font-size:13px}
 .sampling-tables{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;margin-top:16px}
 .sampling-table-toolbar{min-height:28px;margin-bottom:8px}.sampling-actions{padding:0 0 8px;justify-content:flex-start;flex-wrap:wrap;gap:6px}.sampling-actions .ant-space{gap:6px!important}.sampling-actions .ant-btn{padding-inline:10px}
-.sampling-edit-table .ant-table-thead>tr>th{height:48px}
+.sampling-edit-table .ant-table-thead>tr>th{height:76px}
 @media(max-width:1200px){.sampling-material-card .sampling-fabric-info{grid-template-columns:minmax(280px,360px) minmax(180px,1fr);gap:12px}.sampling-requirements-panel .sampling-requirements{grid-template-columns:1fr;gap:6px}.sampling-requirements-panel .sampling-requirements>span{flex-direction:row;align-items:center}.sampling-tables{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:850px){.sampling-material-card .sampling-fabric-info{grid-template-columns:1fr}.sampling-material-card .sampling-annotated-fabric{max-width:400px}.sampling-requirements-panel .sampling-requirements{grid-template-columns:1fr 1fr}}
 
@@ -110,12 +110,12 @@
 .sampling-requirements-grid dd{font-size:12px;color:#262626;line-height:20px;margin:0;overflow-wrap:anywhere}
 @media(max-width:850px){.sampling-requirements-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
-.sampling-requirements-panel .sampling-requirements-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.sampling-requirements-panel .sampling-requirements-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
 
 /* Tighten the material summary while keeping all details visible. */
-.sampling-material-card .sampling-fabric-info{padding:8px 10px}
-.sampling-material-card .sampling-annotated-fabric{height:150px}
-.sampling-annotated-fabric .sampling-fabric-three-columns{padding:8px 10px}
+.sampling-material-card .sampling-fabric-info{padding:6px 10px}
+.sampling-material-card .sampling-annotated-fabric{height:128px}
+.sampling-annotated-fabric .sampling-fabric-three-columns{padding:6px 10px}
 .sampling-fabric-facts{gap:6px}
 .sampling-fabric-facts>span{line-height:1.2;gap:1px}
 .sampling-fabric-components{gap:16px}
@@ -126,6 +126,17 @@
 
 .sampling-task-order .sampling-resample-swatch{background:#f0f0f0;border:1px solid #d9d9d9;box-shadow:none}
 
-.sampling-fabric-facts{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:12px 8px;align-content:center}
-.sampling-fabric-facts>span{gap:4px}
+.sampling-fabric-facts{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:6px 8px;align-content:center}
+.sampling-fabric-facts>span{gap:2px}
 .sampling-fabric-facts strong{line-height:1.5}
+
+.sampling-material-card .sampling-annotated-fabric .sampling-fabric-three-columns .sampling-weave{height:84px}
+
+.sampling-requirements-panel{display:flex;flex-direction:column}
+.sampling-requirements-panel .sampling-requirements-grid{flex:1;grid-template-rows:repeat(2,minmax(0,1fr))}
+.sampling-requirements-panel .sampling-requirements-grid>div{display:flex;flex-direction:column;justify-content:center}
+
+.sampling-requirements-grid>.sampling-requirement-wide{grid-column:span 2}
+
+.sampling-requirements-grid>.sampling-requirement-processing{grid-column:span 3}
+.sampling-requirements-grid>.sampling-requirement-date{grid-column:4}

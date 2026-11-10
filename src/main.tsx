@@ -33,6 +33,9 @@ import QueryFormulaEditor, { type QueryFormulaEdit } from "./QueryFormulaEditor"
 import QueryFormulaModal, { queryFormulaSnapshot, type QueryFormulaDetail } from "./QueryFormulaModal";
 import ComponentStandardsPage from "./ComponentStandardsPage";
 import DyeFormulaTable from "./DyeFormulaTable";
+import FormulaHistoryDialog from "./FormulaHistoryDialog";
+import SamplingDetailContent from "./SamplingDetailContent";
+import {selectHistoryUsage} from "./formula-history-view";
 import type { Formula } from "./dye-formula-model";
 import type { WorkbenchTarget } from "./workbench-navigation";
 import { matchesQueryHistory, type QueryHistoryFilters } from "./query-history-filters";
@@ -121,20 +124,7 @@ function Main() {
     }
   });
   const [queryFormulaDetail, setQueryFormulaDetail] = useState<QueryFormulaDetail | null>(null);
-  const [historyFormulaPreview, setHistoryFormulaPreview] = useState<{
-    number: string;
-    formula: Formula;
-    previousNumber?: string;
-    previous?: Formula;
-    confirmed: boolean;
-    applicant: string;
-    appliedAt: string;
-    reason: string;
-    confirmedBy?: string;
-    confirmedAt?: string;
-  } | null>(null);
   const [queryHistoryOpen, setQueryHistoryOpen] = useState(false);
-  const [queryDetailTab, setQueryDetailTab] = useState<"formula" | "cards">("formula");
   const [queryAccountingCard, setQueryAccountingCard] = useState<string | null>(null);
   const [auditFormulaEdits, setAuditFormulaEdits] = useState<Record<string, typeof bigFormulaRows>>({});
   const [auditEditingKey, setAuditEditingKey] = useState<string | null>(null);
@@ -174,7 +164,6 @@ function Main() {
     [activeRow, setActiveRow] = useState<LabRecord>(queryRecords[0]),
     [detail, setDetail] = useState<LabRecord | null>(null),
     [detailKind, setDetailKind] = useState(""),
-    [detailTab, setDetailTab] = useState("配方"),
     [editing, setEditing] = useState(false);
   const [formula, setFormula] = useState(() => {
       try {
@@ -271,7 +260,6 @@ function Main() {
   const openDetail = (row: LabRecord, kind: string) => {
     setDetail(row);
     setDetailKind(kind);
-    setDetailTab("配方");
     if (kind === "抄样") setHistorySelected(copyHistoryRecords[0]);
   };
   const audit = (row: LabRecord, pass: boolean) => {
@@ -473,9 +461,7 @@ function Main() {
     isSample: true,
   };
   const queryUsages = [...queryLargeUsages, querySmallUsage];
-  const queryVersionRows = queryUsages.filter((row, index, rows) => rows.findIndex((candidate) => candidate.formula === row.formula) === index);
-  const selectedQueryUsage = queryUsages.find((row) => row.formula === querySelectedFormula) ?? queryUsages.find((row) => row.card === queryUsageCard) ?? queryUsages.find((row) => row.available) ?? queryUsages[0];
-  const selectedFormulaCards = selectedQueryUsage.isSample ? [] : queryUsages.filter((row) => !row.isSample && row.formula === selectedQueryUsage.formula);
+  const selectedQueryUsage = selectHistoryUsage(queryUsages, querySelectedFormula) ?? queryUsages[0];
   const accountingUsage = queryUsages.find((row) => row.card === queryAccountingCard);
   const queryRecord = {
     ...queryActive,
@@ -577,22 +563,6 @@ function Main() {
   const accountingMerge = (row: (typeof accountingFormulaRows)[number]) => ({
     rowSpan: row.groupStart ? row.groupSize : 0,
   });
-  const renderMatchResult = (direction: string, depth: string) =>
-    direction === "正常" && depth === "正常" ? (
-      <Tag color="green">OK</Tag>
-    ) : (
-      <Space size={4}>
-        <Tag color={direction.includes("红") ? "red" : direction.includes("黄") ? "gold" : "blue"}>{direction}</Tag>
-        <Tag className={`query-match-depth ${depth.includes("深") ? "deep" : ""}`}>
-          {depth.includes("深") ? "↑" : "↓"} {depth}
-        </Tag>
-      </Space>
-    );
-  const queryHistoryCardRows = queryUsages.map((row, index, all) => ({
-    ...row,
-    groupStart: index === 0 || all[index - 1]?.formula !== row.formula,
-    groupSize: all.filter((candidate) => candidate.formula === row.formula).length,
-  }));
   const queryMetadata = Object.entries({
     订字: queryActive.order,
     色号: queryActive.colorNo,
@@ -1252,225 +1222,16 @@ function Main() {
       </>
     );
   };
-  const queryHistoryDetail = queryList.length ? (
-    <>
-      <div className="query-history-reference-title">
-        <strong>
-          {queryActive.order}　{queryActive.colorNo}
-        </strong>
-      </div>
-      <h3 className="query-history-reference-section">流程卡详情</h3>
-      <Descriptions
-        className="query-history-reference-details"
-        bordered
-        size="small"
-        column={3}
-        items={[
-          {
-            key: "base",
-            label: "基础信息",
-            children: [queryActive.processCard || queryUsages[0]?.card || "—", queryActive.order, queryActive.product].join(" | "),
-          },
-          {
-            key: "color",
-            label: "颜色信息",
-            children: [queryActive.colorNo, queryActive.color, queryActive.depth].join(" | "),
-          },
-          {
-            key: "greige",
-            label: "白坯信息",
-            children: `门幅${queryActive.greigeWidth || "150cm"} | 克重${queryActive.greigeWeight || "200g"}`,
-          },
-          { key: "bad", label: "不良信息", children: "— | — | —" },
-          {
-            key: "meters",
-            label: "米数信息",
-            children: "预配1匹 | 实配1匹 | 实配100米",
-          },
-          {
-            key: "finished",
-            label: "成品要求",
-            children: "门幅无要求 | 克重无要求",
-          },
-          {
-            key: "processing",
-            label: "加工要求",
-            children: queryActive.processingRequirements || "成品手感：滑爽 | 成品光暗：一般 | 布面起皱风格：否 | 布面光洁：否 | 高牢度：否 | 预缩要求：否",
-            span: 2,
-          },
-          {
-            key: "opening",
-            label: "开卡信息",
-            children: `${queryActive.worker || "水木"} | ${dayjs(queryActive.created).format("YYYY/M/D HH:mm:ss")}`,
-          },
-        ]}
-      />
-      <div className="query-history-reference-layout">
-        <section className="query-history-reference-history">
-          <div className="query-history-reference-heading">
-            <h3 className="query-history-reference-section">配方履历</h3>
-            <Tabs
-              className="query-bath-tabs"
-              activeKey={String(queryBathRatio)}
-              onChange={(key) => {
-                const ratio = Number(key),
-                  prefix = `C${String(ratio).padStart(2, "0")}`;
-                setQueryBathRatio(ratio);
-                setQuerySelectedFormula((current) => (current ? current.replace(/^C\d{2}/, prefix) : ""));
-                setQueryInlineEdit(null);
-              }}
-              items={queryBathOptions.map((ratio) => ({
-                key: String(ratio),
-                label: `浴比 1:${ratio}`,
-              }))}
-            />
-          </div>
-          <Table
-            bordered
-            size="small"
-            tableLayout="fixed"
-            pagination={false}
-            scroll={{ y: 360 }}
-            rowKey={(row) => `${row.formula}-${row.card}`}
-            dataSource={queryHistoryCardRows}
-            onRow={(row) => ({
-              onClick: () => {
-                setQuerySelectedFormula(row.formula);
-                setQueryUsageCard(row.card);
-                setQueryInlineEdit(null);
-              },
-            })}
-            rowClassName={(row) => (row.formula === selectedQueryUsage.formula ? "active-row" : "")}
-            columns={[
-              {
-                title: "配方号",
-                dataIndex: "formula",
-                width: 150,
-                onCell: (row) => ({
-                  rowSpan: row.groupStart ? row.groupSize : 0,
-                  style: { verticalAlign: "middle" },
-                }),
-                render: (value, row) => (
-                  <div className="query-history-reference-formula">
-                    <a
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setQuerySelectedFormula(row.formula);
-                        setQueryUsageCard(row.card);
-                        setQueryInlineEdit(null);
-                        const readVersion = (number: string, version: number): Formula => {
-                          const saved = queryEdits[number] ?? (version === 0 ? queryEdits[queryActive.key] : undefined);
-                          return saved
-                            ? {
-                                bath: saved.bath,
-                                rows: saved.rows.map((item) => ({
-                                  ...item,
-                                  name: "",
-                                  process: item.process ?? "",
-                                  processName: item.processName ?? "",
-                                  ph: item.ph ?? "",
-                                })),
-                              }
-                            : queryFormulaSnapshot(row.bath, version);
-                        };
-                        const previousNumber = row.version > 0 ? row.formula.replace(/v\d+$/, `v${row.version - 1}`) : undefined;
-                        const metadata = queryEdits[row.formula] ?? (row.version === 0 ? queryEdits[queryActive.key] : undefined);
-                        setHistoryFormulaPreview({
-                          applicant: metadata?.applicant ?? queryActive.worker,
-                          appliedAt: metadata?.updatedAt ?? row.created,
-                          reason: metadata?.reason ?? row.reason,
-                          confirmedBy: metadata?.confirmedBy,
-                          confirmedAt: metadata?.confirmedAt,
-                          number: row.formula,
-                          formula: readVersion(row.formula, row.version),
-                          previousNumber,
-                          previous: previousNumber ? readVersion(previousNumber, row.version - 1) : undefined,
-                          confirmed: row.confirmed,
-                        });
-                      }}
-                    >
-                      {value}
-                      {row.isSample && <Tag color="blue">小样</Tag>}
-                      {!row.confirmed && <sup className="copy-formula-unconfirmed">未确认</sup>}
-                    </a>
-                    <small>{row.reason}</small>
-                  </div>
-                ),
-              },
-              {
-                title: "流程卡号",
-                dataIndex: "card",
-                width: 125,
-                ellipsis: true,
-              },
-              {
-                title: "加料",
-                dataIndex: "addition",
-                width: 55,
-                align: "center",
-                render: (value) => `${value}次`,
-              },
-              {
-                title: "不良",
-                dataIndex: "defect",
-                width: 70,
-                align: "center",
-                ellipsis: true,
-              },
-              {
-                title: "半检对样",
-                width: 145,
-                align: "center",
-                render: (_, row) => renderMatchResult(row.halfDirection, row.halfDepth),
-              },
-              {
-                title: "成品对样",
-                width: 145,
-                align: "center",
-                render: (_, row) => renderMatchResult(row.finishedDirection, row.finishedDepth),
-              },
-            ]}
-          />
-        </section>
-        <section className="query-history-reference-current">
-          <div className="query-history-reference-current-heading">
-            <h3>
-              当前订单配方 <span>配方号：{queryRecord.formula}</span>
-            </h3>
-            {queryInlineEdit?.formulaNo === queryRecord.formula ? (
-              <Space size={4}>
-                <Button size="small" onClick={() => setQueryInlineEdit(null)}>
-                  取消
-                </Button>
-                <Button className="query-history-inline-save" type="primary" size="small" onClick={saveQueryInlineEdit}>
-                  保存
-                </Button>
-              </Space>
-            ) : (
-              <Space size={4}>
-                <Button type="link" size="small" icon={<EditOutlined />} onClick={startQueryInlineEdit}>
-                  编辑
-                </Button>
-                <Button type="link" size="small" icon={<PrinterOutlined />} onClick={() => window.print()}>
-                  打印
-                </Button>
-              </Space>
-            )}
-          </div>
-          {queryInlineEdit?.formulaNo === queryRecord.formula ? <DyeFormulaTable compact fitWidth showBath editing formula={queryInlineEdit.formula} onChange={(formula) => setQueryInlineEdit((current) => (current ? { ...current, formula } : current))} /> : <DyeFormulaTable compact fitWidth formula={queryDisplayFormula} />}
-        </section>
-      </div>
-    </>
-  ) : (
-    <Empty description="暂无符合条件的配方" />
-  );
+  const readHistoryFormula = (number: string, version: number): Formula => {
+    const saved = queryEdits[number] ?? (version === 0 ? queryEdits[queryActive.key] : undefined);
+    return saved ? {bath:saved.bath,rows:saved.rows.map(row=>({...row,name:'',process:row.process??'',processName:row.processName??'',ph:row.ph??''}))} : queryFormulaSnapshot(queryBathRatio, version);
+  };
   const openQueryHistory = (row: LabRecord) => {
     setActiveRow(row);
     setHistorySelected(row);
     setQueryBathRatio(row.ratio === 5 ? 4 : row.ratio);
     setQueryUsageCard("");
     setQuerySelectedFormula("");
-    setQueryDetailTab("formula");
     setQueryInlineEdit(null);
     setQueryHistoryOpen(true);
   };
@@ -1913,10 +1674,10 @@ function Main() {
           </main>
         </div>
         <Drawer
-          rootClassName={detailKind === "抄样" ? "copy-history-drawer" : ""}
+          rootClassName={detailKind === "抄样" ? "copy-history-drawer" : "sampling-detail-drawer"}
           open={!!detail}
           width={detailKind === "抄样" ? "72%" : "80%"}
-          title={detailKind === "抄样" ? undefined : `${detail?.order || ""}　${detail?.colorNo || ""}`}
+          title={detailKind === "抄样" ? undefined : "详情信息"}
           onClose={() => setDetail(null)}
           footer={
             <div className="drawer-footer">
@@ -1975,93 +1736,30 @@ function Main() {
         >
           {detailKind === "抄样" ? (
             copyDetails()
-          ) : (
-            <>
-              <Tabs
-                activeKey={detailTab}
-                onChange={setDetailTab}
-                items={["配方", "打样过程", "基础信息"].map((label) => ({
-                  key: label,
-                  label: label === "配方" ? "大样配方" : label,
-                }))}
-              />
-              {detailTab === "配方" ? (
-                <>
-                  <div className="detail-actions">
-                    <Button
-                      type="primary"
-                      onClick={() => {
-                        setDetail(null);
-                        navigate("配方查询");
-                      }}
-                    >
-                      查看配方
-                    </Button>
-                    <Button
-                      type="primary"
-                      onClick={() => {
-                        setDraft(bigFormulaRows);
-                        setEditing(true);
-                      }}
-                    >
-                      引用减量率
-                    </Button>
-                    <Button
-                      type="primary"
-                      onClick={() => {
-                        setDraft(detailKind === "审核" ? bigFormulaRows : formula);
-                        setEditing(true);
-                      }}
-                    >
-                      编辑配方
-                    </Button>
-                  </div>
-                  {formulaTable(detailKind === "审核")}
-                </>
-              ) : detailTab === "打样过程" ? (
-                <Table
-                  size="small"
-                  bordered
-                  pagination={false}
-                  dataSource={[1, 2, 3, 4].map((n) => ({
-                    key: n,
-                    round: `第${n}枪`,
-                    time: `2026-09-03 11:${40 + n}`,
-                    worker: detail?.worker,
-                    result: n === 4 ? "完成" : "调整中",
-                  }))}
-                  columns={[col("枪次", "round"), col("操作时间", "time"), col("打样员", "worker"), col("结果", "result")]}
-                />
-              ) : (
-                <Descriptions
-                  bordered
-                  column={2}
-                  items={
-                    detail
-                      ? Object.entries({
-                          订字: detail.order,
-                          色号: detail.colorNo,
-                          品名: detail.product,
-                          颜色: detail.color,
-                          配方号: detail.formula,
-                          打样员: detail.worker,
-                          创建时间: detail.created,
-                          状态: detail.status,
-                        }).map(([label, children]) => ({
-                          key: label,
-                          label,
-                          children,
-                        }))
-                      : []
-                  }
-                />
-              )}
-            </>
-          )}
+          ) : detail ? <SamplingDetailContent
+            record={detail}
+            detailKind={detailKind}
+            formulaActions={<>
+              <Button type="primary" onClick={() => {setDetail(null);navigate("配方查询");}}>查看配方</Button>
+              <Button type="primary" onClick={() => {setDraft(bigFormulaRows);setEditing(true);}}>引用减量率</Button>
+              <Button type="primary" onClick={() => {setDraft(detailKind === "审核" ? bigFormulaRows : formula);setEditing(true);}}>编辑配方</Button>
+            </>}
+            formulaTable={formulaTable(detailKind === "审核")}
+          /> : null}
         </Drawer>
-        <Modal className="query-history-modal" width="calc(100vw - 40px)" style={{ top: 12 }} open={queryHistoryOpen} onCancel={() => setQueryHistoryOpen(false)} footer={null}>
-          {queryHistoryDetail}
-        </Modal>
+        <FormulaHistoryDialog
+          open={queryHistoryOpen} record={queryActive} bath={queryBathRatio} baths={queryBathOptions}
+          usages={queryUsages} selected={selectedQueryUsage} formula={queryDisplayFormula}
+          readFormula={readHistoryFormula} edits={queryEdits}
+          editing={queryInlineEdit?.formulaNo===queryRecord.formula?queryInlineEdit.formula:null}
+          onEdit={startQueryInlineEdit}
+          onDraft={formula=>setQueryInlineEdit(current=>current?{...current,formula}:current)}
+          onSave={saveQueryInlineEdit} onCancelEdit={()=>setQueryInlineEdit(null)}
+          onBath={bath=>{setQueryBathRatio(bath);setQuerySelectedFormula('');setQueryUsageCard('');setQueryInlineEdit(null);}}
+          onVersion={formula=>{setQuerySelectedFormula(formula);setQueryUsageCard('');setQueryInlineEdit(null);}}
+          onClose={()=>{setQueryHistoryOpen(false);setQueryInlineEdit(null);}}
+          onAccounting={setQueryAccountingCard}
+        />
         <Modal
           className="query-accounting-modal"
           title={
@@ -2171,69 +1869,6 @@ function Main() {
             }}
           />
         )}
-        <Modal
-          title={
-            <Space>
-              配方详情 <span>{historyFormulaPreview?.number}</span>
-              {historyFormulaPreview && !historyFormulaPreview.confirmed && <Tag color="orange">未确认</Tag>}
-            </Space>
-          }
-          open={!!historyFormulaPreview}
-          width="90vw"
-          style={{ top: 40 }}
-          styles={{
-            body: { maxHeight: "calc(100vh - 180px)", overflow: "auto" },
-          }}
-          onCancel={() => setHistoryFormulaPreview(null)}
-          footer={<Button onClick={() => setHistoryFormulaPreview(null)}>关闭</Button>}
-        >
-          {historyFormulaPreview && (
-            <>
-              <Descriptions
-                bordered
-                size="small"
-                column={5}
-                items={[
-                  {
-                    key: "applicant",
-                    label: "申请人",
-                    children: historyFormulaPreview.applicant || "未记录",
-                  },
-                  {
-                    key: "appliedAt",
-                    label: "申请时间",
-                    children: dayjs(historyFormulaPreview.appliedAt).format("YYYY-MM-DD HH:mm:ss"),
-                  },
-                  {
-                    key: "reason",
-                    label: "变更原因",
-                    children: historyFormulaPreview.reason || "未记录",
-                  },
-                  {
-                    key: "confirmedBy",
-                    label: "确认人",
-                    children: historyFormulaPreview.confirmed ? historyFormulaPreview.confirmedBy || "未记录" : "待确认",
-                  },
-                  {
-                    key: "confirmedAt",
-                    label: "确认时间",
-                    children: historyFormulaPreview.confirmed ? (historyFormulaPreview.confirmedAt ? dayjs(historyFormulaPreview.confirmedAt).format("YYYY-MM-DD HH:mm:ss") : "未记录") : "待确认",
-                  },
-                ]}
-              />
-              <div className="formula-compare-grid">
-                <section>
-                  <h3>上一个版本 {historyFormulaPreview.previousNumber}</h3>
-                  {historyFormulaPreview.previous ? <DyeFormulaTable compact fitWidth showBath formula={historyFormulaPreview.previous} original={historyFormulaPreview.formula} /> : <Empty description="初始版本，暂无上一个版本" />}
-                </section>
-                <section>
-                  <h3>当前版本 {historyFormulaPreview.number}</h3>
-                  <DyeFormulaTable compact fitWidth showBath formula={historyFormulaPreview.formula} original={historyFormulaPreview.previous} />
-                </section>
-              </div>
-            </>
-          )}
-        </Modal>
         <QueryFormulaModal detail={queryFormulaDetail} onClose={() => setQueryFormulaDetail(null)} />
         <CopyFormulaModal record={copyFormulaDetail} onClose={() => setCopyFormulaDetail(null)} />
         <Modal

@@ -1,0 +1,30 @@
+.formula-change-detail-modal .ant-modal-content{height:auto;max-height:calc(100dvh - 48px);display:flex;flex-direction:column;padding:20px 24px;border-radius:8px}
+.formula-change-detail-modal .ant-modal-header{flex:none;margin-bottom:16px;padding-right:32px}
+.formula-change-detail-modal .ant-modal-body{flex:initial;min-height:0;overflow:auto;padding-top:0;scrollbar-gutter:stable}
+.formula-change-detail-modal .ant-modal-footer{flex:none;border-top:1px solid #f0f0f0;margin-top:16px;padding-top:12px}
+.change-detail-title{display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:14px}
+.change-detail-title>span:first-child{font-size:16px;font-weight:600}
+.change-detail-title strong{font-weight:500;padding-left:16px;border-left:1px solid #d9d9d9}
+.change-detail-title .ant-tag{font-weight:400;margin:0}
+.change-detail-title>span:not(:first-child){font-weight:400;color:#595959}
+.change-detail-card{container-type:inline-size}
+.change-detail-card-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.change-detail-card-heading h3{font-size:13px;font-weight:500;margin:0;color:#8c8c8c}
+.change-detail-card-heading h3 span{color:#262626;margin-left:8px}
+.change-detail-card .formula-basic-info{margin-bottom:0}
+.change-detail-extra{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:0;padding:10px 12px;border:1px solid #f0f0f0;border-top:0;border-radius:0 0 4px 4px}
+.change-detail-extra>div{min-width:0}.change-detail-extra dt{font-size:11px;color:#8c8c8c;margin-bottom:4px;line-height:16px}
+.change-detail-extra dd{font-size:12px;color:#595959;margin:0;line-height:18px;overflow-wrap:anywhere}
+.change-detail-application{padding:14px 0;border-bottom:1px solid #f0f0f0}
+.change-detail-application .ant-descriptions-item-label{font-size:12px;color:#8c8c8c;white-space:nowrap}
+.change-detail-application .ant-descriptions-item-content{font-size:12px;line-height:1.6}
+.change-detail-application .ant-descriptions-row>td,.change-detail-application .ant-descriptions-row>th{padding-bottom:6px}
+.change-detail-application .ant-tag{font-size:11px;margin:0;line-height:20px}
+.change-detail-application .ant-alert{margin-top:8px;padding:8px 12px}
+.change-detail-application .ant-alert-message{font-size:12px}.change-detail-application .ant-alert-description{font-size:11px;color:#8c8c8c}
+.change-detail-confirmed{display:flex;gap:12px 24px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:#595959}
+.change-detail-comparison-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:14px 0 10px;flex-wrap:wrap}
+.change-detail-comparison-heading h3{font-size:14px;margin:0;font-weight:500}
+.formula-change-detail-footer{gap:12px;flex-wrap:wrap}.formula-change-detail-footer>span{font-size:12px;color:#8c8c8c}
+@media(max-width:1000px){.change-detail-extra{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:650px){.formula-change-detail-modal .ant-modal-content{padding:16px}.change-detail-extra{grid-template-columns:repeat(2,minmax(0,1fr))}.change-detail-title{gap:8px}.change-detail-title strong{padding-left:8px}.formula-change-detail-footer .ant-space{flex-wrap:wrap}}

@@ -1,0 +1,98 @@
+.formula-history-dialog .ant-modal-content{display:flex;flex-direction:column;max-height:calc(100vh - 48px);padding:20px 24px;border-radius:8px}
+.formula-history-dialog .ant-modal-header{flex:none;padding-right:32px;margin-bottom:12px}
+.formula-history-dialog .ant-modal-body{min-height:0;overflow:auto;scrollbar-gutter:stable}
+.formula-history-dialog .ant-modal-footer{flex:none;border-top:1px solid #f0f0f0;margin-top:16px;padding-top:12px}
+.formula-history-title{display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:14px}
+.formula-history-title>span:first-child{font-size:16px;font-weight:600}
+.formula-history-title strong{font-weight:500;padding-left:16px;border-left:1px solid #d9d9d9}
+.formula-history-title>span:last-child{color:#595959;font-weight:400}
+.formula-history-summary{display:flex;gap:12px 28px;flex-wrap:wrap;padding:12px 16px;background:#fafafa;border:1px solid #f0f0f0;border-radius:4px}
+.formula-history-summary>span{font-size:12px;color:#8c8c8c}
+.formula-history-summary b{margin-left:10px;color:#262626;font-weight:400}
+.formula-history-selectors{display:flex;align-items:center;gap:12px 24px;flex-wrap:wrap;padding:16px 0 4px}
+.formula-history-selectors label{display:flex;gap:10px;align-items:center;color:#595959;font-size:12px;min-width:0}
+.formula-history-selectors label>span{white-space:nowrap}
+.formula-history-selectors label>.ant-select{width:100px}
+.formula-history-selectors .formula-history-version>.ant-select{width:360px;max-width:100%}
+.formula-history-selectors .ant-tag{margin-inline-end:0}
+.formula-history-dialog .ant-tabs-nav{margin-bottom:16px}
+.formula-history-content{min-height:330px}
+.formula-history-section-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.formula-history-section-heading>div:first-child{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.formula-history-section-heading h3{margin:0;font-size:14px;font-weight:500;color:#262626}
+.formula-history-number{font-size:12px;color:#8c8c8c;overflow-wrap:anywhere}
+.formula-history-dialog .ant-table-cell{font-size:12px}
+.formula-history-dialog .ant-table-thead>tr>th{background:#fafafa}
+.formula-history-dialog .dye-formula-table{margin-top:0}
+.formula-history-formula-table{min-width:0;overflow-x:auto}
+.formula-history-card-selected>td{background:#e6f4ff!important}
+.formula-history-card-details{margin-top:20px;padding-top:16px;border-top:1px solid #f0f0f0}
+.formula-history-dialog .ant-descriptions-item-label{font-size:12px;color:#8c8c8c;white-space:nowrap}
+.formula-history-dialog .ant-descriptions-item-content{font-size:12px;overflow-wrap:anywhere}
+.formula-history-comparison{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;margin-top:20px}
+.formula-history-comparison>section{min-width:0;overflow-x:auto;border:1px solid #f0f0f0;border-radius:4px;padding:12px}
+.formula-history-comparison h4{margin:0 0 4px;font-size:13px;font-weight:500}
+.formula-history-comparison p{margin:0 0 12px;color:#8c8c8c;font-size:12px;overflow-wrap:anywhere}
+.formula-history-initial{padding:12px 0;color:#8c8c8c;font-size:12px}
+@media(max-width:1100px){.formula-history-comparison{grid-template-columns:1fr}.formula-history-selectors{gap:12px}.formula-history-content{min-height:280px}}
+@media(max-width:650px){.formula-history-dialog .ant-modal-content{padding:16px}.formula-history-selectors .formula-history-version{width:100%}.formula-history-selectors .formula-history-version>.ant-select{flex:1;min-width:0}.formula-history-title{gap:8px}.formula-history-summary{gap:8px 16px}}
+@media print{.formula-history-dialog .ant-modal-footer,.formula-history-selectors,.formula-history-dialog .ant-tabs-nav,.formula-history-dialog .ant-btn{display:none!important}.formula-history-dialog .ant-modal-content{max-height:none}.formula-history-dialog .ant-modal-body{overflow:visible}}
+.formula-history-comparison .formula-changed-cell{background:#fff1f0!important;color:#cf1322;font-weight:600}
+@media print{
+ body.formula-history-open #root{display:none!important}
+ body.formula-history-open .ant-modal-mask,body.formula-history-open .ant-modal-root:not(:has(.formula-history-dialog)){display:none!important}
+ .ant-modal-wrap:has(.formula-history-dialog){position:static!important;overflow:visible!important}
+ .formula-history-dialog.ant-modal{top:0!important;width:100%!important;max-width:none!important;margin:0;padding:0}
+ .formula-history-dialog .ant-modal-content{padding:0;box-shadow:none;border-radius:0}
+ .formula-history-dialog .ant-tabs-content-holder,.formula-history-dialog .ant-table-content{overflow:visible!important}
+}
+.formula-history-comparison .ant-table-thead>tr>th{white-space:nowrap;padding-inline:4px!important}
+
+/* A: persistent version navigation with the selected detail on the right. */
+.formula-history-workspace{display:grid;grid-template-columns:256px minmax(0,1fr);gap:24px;margin-top:16px;align-items:start}
+.formula-history-sidebar{border:1px solid #f0f0f0;border-radius:6px;overflow:hidden;min-width:0;background:#fafafa}
+.formula-history-sidebar-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px;border-bottom:1px solid #f0f0f0;background:#fff}
+.formula-history-sidebar-heading h3{font-size:13px;margin:0;font-weight:500}
+.formula-history-sidebar-heading label{display:flex;align-items:center;gap:6px;color:#8c8c8c;font-size:12px}
+.formula-history-sidebar-heading .ant-select{width:84px}
+.formula-history-version-list{max-height:calc(100vh - 290px);min-height:220px;overflow-y:auto;padding:8px}
+.formula-history-version-item{display:flex;flex-direction:column;gap:5px;width:100%;padding:10px 12px;margin:0 0 6px;border:1px solid #e8e8e8;border-radius:4px;text-align:left;background:#fff;color:#262626;cursor:pointer;font:inherit}
+.formula-history-version-item:last-child{margin-bottom:0}
+.formula-history-version-item:hover{border-color:#91caff;background:#f5faff}
+.formula-history-version-item.is-selected{border-color:#1677ff;background:#e6f4ff}
+.formula-history-version-item:focus-visible{outline:2px solid #1677ff;outline-offset:1px}
+.formula-history-version-title{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.formula-history-version-title strong{font-size:13px;font-weight:600;margin-right:auto}
+.formula-history-version-title .ant-tag{font-size:10px;line-height:18px;padding-inline:4px;margin:0}
+.formula-history-version-number{font-size:11px;color:#595959;overflow-wrap:anywhere}
+.formula-history-version-item time{font-size:11px;color:#8c8c8c}
+.formula-history-version-reason{font-size:12px;color:#595959;line-height:1.5}
+.formula-history-detail{min-width:0;container-type:inline-size}
+.formula-history-selected-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;min-height:50px;padding-bottom:12px;border-bottom:1px solid #f0f0f0}
+.formula-history-selected-heading>div:first-child{display:flex;flex-direction:column;gap:4px}
+.formula-history-selected-heading h3{font-size:14px;margin:0;font-weight:600}
+.formula-history-selected-heading .ant-tag{margin:0}
+.formula-history-detail>.ant-tabs>.ant-tabs-nav{margin-bottom:16px}
+.formula-history-detail .formula-history-content{min-height:360px}
+@container(max-width:850px){.formula-history-comparison{grid-template-columns:1fr}}
+@media(max-width:1000px){.formula-history-workspace{grid-template-columns:220px minmax(0,1fr);gap:16px}.formula-history-version-title strong{flex-basis:100%}}
+@media(max-width:700px){.formula-history-workspace{grid-template-columns:minmax(0,1fr);gap:16px}.formula-history-version-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;max-height:220px;min-height:0}.formula-history-version-item{margin:0}.formula-history-version-title strong{flex-basis:auto}.formula-history-selected-heading{min-height:0}}
+@media print{.formula-history-sidebar{display:none!important}.formula-history-workspace{display:block;margin-top:12px}.formula-history-selected-heading{margin-bottom:12px}.formula-history-detail{container-type:normal}}
+
+.formula-history-order-info .ant-descriptions-view{border-radius:4px;overflow:hidden}
+.formula-history-dialog .formula-history-order-info .ant-descriptions-item-label{padding:7px 10px;font-size:11px;color:#8c8c8c;background:#fafafa}
+.formula-history-dialog .formula-history-order-info .ant-descriptions-item-content{padding:7px 10px;font-size:11px;color:#262626;line-height:1.6}
+
+.formula-history-bath-tabs{background:#fff;padding:0 12px}
+.formula-history-dialog .formula-history-bath-tabs>.ant-tabs-nav{margin:0}
+.formula-history-bath-tabs>.ant-tabs-content-holder{display:none}
+.formula-history-bath-tabs .ant-tabs-tab{font-size:12px;padding:8px 0}
+.formula-history-bath-tabs .ant-tabs-tab+.ant-tabs-tab{margin-left:16px}
+
+.formula-history-detail>.formula-history-order-info{margin-bottom:12px}
+
+.formula-history-version-title{flex-wrap:nowrap}
+.formula-history-version-title strong{font-size:11px;white-space:nowrap;overflow-wrap:normal;min-width:0;flex:0 1 auto;margin-right:0}
+.formula-history-version-title .ant-tag{flex-shrink:0}
+@media(max-width:1000px) and (min-width:701px){.formula-history-workspace{grid-template-columns:240px minmax(0,1fr)}}
+@media(max-width:500px){.formula-history-version-list{grid-template-columns:minmax(0,1fr)}}

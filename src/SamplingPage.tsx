@@ -59,9 +59,9 @@ export default function SamplingPage({onMatching,onQuery}:{onMatching:(card:stri
  <div><dt>参照订字色号</dt><dd>{reference.order} / {reference.color}</dd></div>
  <div><dt>要求浴比</dt><dd>1:{ticket.bath}</dd></div>
  <div><dt>对色光源</dt><dd>—</dd></div>
- <div><dt>下单时间</dt><dd>2026-08-19 09:30</dd></div>
- <div><dt>加工要求</dt><dd>无要求</dd></div>
  <div><dt>颜色</dt><dd>浅色 | 浅红</dd></div>
+ <div className="sampling-requirement-processing"><dt>加工要求</dt><dd>无要求</dd></div>
+ <div className="sampling-requirement-date"><dt>下单时间</dt><dd>2026-08-19 09:30</dd></div>
  </dl>
  </div></div></div>
 

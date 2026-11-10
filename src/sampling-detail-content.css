@@ -1,0 +1,23 @@
+.sampling-detail-content{display:flex;flex-direction:column;gap:16px;color:var(--ant-text,#1f1f1f)}
+.sampling-detail-section{min-width:0}
+.sampling-detail-section-heading{min-height:40px;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 0 10px}
+.sampling-detail-section-heading>div:first-child{display:flex;align-items:center;gap:8px;min-width:0}
+.sampling-detail-section-heading h2{margin:0;font-size:14px;line-height:22px;font-weight:600;color:var(--ant-text,#1f1f1f);white-space:nowrap}
+.sampling-detail-section-heading>span{font-size:12px;line-height:20px;color:var(--ant-text-secondary,#595959);white-space:nowrap}
+.sampling-detail-section-heading>span b{color:var(--ant-primary,#1677ff);font-weight:500}
+.sampling-detail-section-mark{width:3px;height:18px;border-radius:2px;background:var(--ant-primary,#1677ff);flex:0 0 auto}
+.sampling-detail-summary .ant-descriptions-view{border-radius:6px;overflow:hidden}
+.sampling-detail-summary .ant-descriptions-item-label{width:104px;white-space:nowrap;color:var(--ant-text-secondary,#595959)!important;background:var(--ant-fill,#fafafa)!important}
+.sampling-detail-summary .ant-descriptions-item-content{min-width:120px;color:var(--ant-text,#1f1f1f)!important}
+.sampling-detail-progress-scroll{overflow-x:auto;padding:14px 16px 10px;border:1px solid var(--ant-split,#f0f0f0);border-radius:6px;background:var(--ant-fill,#fafafa);scrollbar-width:thin}
+.sampling-detail-progress-scroll .ant-steps{min-width:640px}
+.sampling-detail-progress-scroll .ant-steps-item-title{font-size:13px;line-height:22px}
+.sampling-detail-progress-scroll .ant-steps-item-description{font-size:12px;line-height:20px;white-space:nowrap}
+.sampling-detail-formula-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.sampling-detail-formula-table{min-width:0;overflow-x:auto;border-radius:6px}
+.sampling-detail-formula-table .ant-table-wrapper{min-width:720px}
+@media(max-width:900px){
+ .sampling-detail-section-heading{align-items:flex-start;flex-wrap:wrap}
+ .sampling-detail-formula-actions{width:100%;justify-content:flex-start}
+ .sampling-detail-summary .ant-descriptions-item-label{width:88px}
+}

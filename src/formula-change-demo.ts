@@ -1,8 +1,8 @@
 import {dyeReviewCards} from './dye-review-cards';
-import {loadFormulaState,saveFormulaState,submitFormula} from './dye-formula-model';
+import {loadFormulaState,saveFormulaState,submitFormula,reviewFormula,updateReviewFormula} from './dye-formula-model';
 
 // Stable IDs keep handled demo requests from being recreated on refresh.
-export function ensureFormulaChangeDemo(){
+export function ensureFormulaChangeDemo(now:Date=new Date()){
  const reasons=['染缸装载量调整，浴比增加1，申请重新核定用量','对样颜色偏浅，艳蓝用量提高8%','色光偏红，红染料用量降低10%','手感偏硬，补充柔软剂改善手感','工艺优化，浴比降低1并微调增白剂比例'];
  dyeReviewCards.slice(0,5).forEach((card,index)=>{
   const state=loadFormulaState(card.card),id=`formula-change-demo-v1-${card.card}`;
@@ -55,5 +55,33 @@ export function ensureFormulaChangeDemo(){
   return {...change,vat:change.vat||info.vat,entryWeight:change.entryWeight??info.entryWeight};
  });
  if(updated)saveFormulaState(state);
- return state;
+ return ensureCurrentMonthWorkspaceDemo(now);
+}
+
+// Dedicated demonstration cards do not alter the formulas on existing business cards.
+function ensureCurrentMonthWorkspaceDemo(now:Date){
+ const month=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}`;
+ const monthStart=new Date(now.getFullYear(),now.getMonth(),1).getTime();
+ const reasons=['染色后色光偏红，调整红染料比例','原申请需补充调整，降低助剂用量','已微调主染料，等待确认新配方','已调整浴比，等待确认实际用量','白度偏低，申请提高增白剂用量','手感偏硬，申请调整柔软处理','试缸色光稳定，确认修订配方','浴比复核完成，确认优化用量'];
+ for(let index=0;index<8;index++){
+  const id=`formula-change-workspace-demo-${month}-${index}`;
+  if(loadFormulaState().changes.some(change=>change.id===id))continue;
+  const card=`Y${month.slice(2)}9${String(index+1).padStart(3,'0')}`;
+  const state=loadFormulaState(card),info=dyeReviewCards[index%dyeReviewCards.length];
+  const after=structuredClone(state.approved);
+  const bathChange=index%2===1;
+  if(bathChange)after.bath=(after.bath??9)+1;
+  else after.rows[0].ratio=Number(((after.rows[0].ratio??0)+0.08).toFixed(3));
+  let next=submitFormula(state,after,reasons[index],state.version,['张敏','李强','王芳','陈杰'][index%4],bathChange?'bath':'auxiliary',[bathChange?'浴比调整':'助剂调整']);
+  const requestId=next.changes[0].id;
+  if(index<2)next=reviewFormula(next,requestId,false,'水木','请按复核结果重新调整配方');
+  else if(index<4)next=updateReviewFormula(next,requestId,after);
+  else if(index>=6)next=reviewFormula(next,requestId,true,'水木','试缸复核通过','requested');
+  const submittedAt=new Date(Math.max(monthStart,now.getTime()-(index+1)*45*60*1000)).toISOString();
+  const change=next.changes.find(change=>change.id===requestId)!;
+  Object.assign(change,{id,source:'demo',category:'change',order:info.order,colorNo:info.colorNo,submittedAt});
+  if(change.reviewedAt)change.reviewedAt=new Date(Math.min(now.getTime(),new Date(submittedAt).getTime()+20*60*1000)).toISOString();
+  saveFormulaState(next);
+ }
+ return loadFormulaState();
 }

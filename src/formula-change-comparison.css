@@ -1,0 +1,27 @@
+.formula-change-comparison{min-width:0}
+.change-bath-comparison{display:flex;align-items:center;gap:12px 24px;flex-wrap:wrap;padding:10px 12px;background:#fafafa;border:1px solid #f0f0f0;border-bottom:0;border-radius:4px 4px 0 0;font-size:12px;color:#595959}
+.change-bath-comparison b{font-weight:500;margin-left:6px;color:#262626}
+.change-bath-comparison>span{display:flex;align-items:center;gap:6px}
+.change-bath-comparison .ant-input-number{width:85px}
+.change-bath-comparison>.ant-btn{margin-left:auto}
+.formula-change-comparison .ant-table-thead>tr>th{background:#fafafa;font-size:12px;white-space:nowrap}
+.formula-change-comparison .ant-table-tbody>tr>td{padding:10px 12px!important;font-size:12px;vertical-align:top}
+.change-row-identity{display:flex;flex-direction:column;gap:5px;overflow-wrap:anywhere}
+.change-row-identity small,.change-row-identity>span,.change-unchanged{font-size:11px;color:#8c8c8c;line-height:1.5}
+.change-row-identity strong{font-size:13px;font-weight:500}
+.formula-change-comparison .ant-tag{margin:0;font-size:10px;line-height:18px;padding-inline:4px;white-space:nowrap}
+.change-config{display:flex;flex-direction:column;gap:8px;min-width:0;line-height:1.5}
+.change-config-values{display:grid;grid-template-columns:1fr 1fr 1.1fr;gap:8px;padding-bottom:6px;border-bottom:1px solid #f5f5f5}
+.change-config-values label{display:flex;flex-direction:column;gap:4px;min-width:0}
+.change-config small{font-size:10px;color:#8c8c8c;font-weight:400}
+.change-config-value{overflow-wrap:anywhere;color:#262626}
+.formula-change-comparison .is-changed{color:#d46b08!important;font-weight:600;background:#fff7e6;border-radius:2px;padding-inline:2px}
+.change-config-line{display:flex;align-items:baseline;gap:10px}
+.change-config-line>small{flex:0 0 24px}
+.change-config-identity{display:flex;gap:6px;flex-wrap:wrap;font-size:11px}
+.change-config-missing{display:flex;flex-direction:column;align-items:flex-start;gap:8px;font-size:12px;color:#8c8c8c;padding:8px 0}
+.change-config-edit-identity{display:grid;grid-template-columns:60px minmax(0,1fr) auto;gap:8px;align-items:end}
+.change-config-edit-identity label,.change-config-edit-process label{display:flex;flex-direction:column;gap:4px;font-size:10px;color:#8c8c8c;min-width:0}
+.change-config-edit-process{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.change-config .ant-select,.change-config .ant-input-number{width:100%;min-width:0}
+.change-config .ant-input{min-width:0}

@@ -89,6 +89,7 @@ const statusColor: Record<string, string> = {
 
 export default function ComponentStandardsPage() {
   const { message, notification } = App.useApp();
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false),
     [drawerOpen, setDrawerOpen] = useState(false);
   return (
@@ -356,6 +357,40 @@ export default function ComponentStandardsPage() {
           </Space>
         </Card>
       </section>
+
+      <Card title="弹窗信息显示规范" size="small" className="component-section"
+        extra={<Button onClick={() => setDetailModalOpen(true)}>查看信息弹窗示例</Button>}
+      >
+        <Descriptions bordered size="small" column={1} items={[
+          { key: "usage", label: "适用场景", children: "用于查看当前任务详情、展示重要提示或确认操作；普通成功反馈使用消息提示，持续性通知使用通知组件。" },
+          { key: "title", label: "标题", children: "使用明确的业务名称，如“配方详情”“确认审核”；标题保持简短，同一弹窗只承载一个主题。" },
+          { key: "content", label: "信息层级", children: "先展示状态和关键标识，再按业务分组展示详情；字段标签与内容对齐，单位随数值展示，缺失值统一显示“—”。" },
+          { key: "layout", label: "尺寸与排版", children: "简短提示宽度 520px，信息详情宽度 720px；小屏幕适配可用宽度，多字段使用描述列表，长内容在正文区域滚动。" },
+          { key: "status", label: "状态与异常", children: "状态使用文字配合标签或图标，不仅依赖颜色；加载中展示加载状态，空数据说明原因，失败提示说明原因并提供重试入口。" },
+          { key: "actions", label: "底部操作", children: "只读详情使用“关闭”；确认操作使用“取消”和明确的动作名称，主要操作放右侧；危险操作使用红色按钮并说明影响。" },
+          { key: "close", label: "关闭与交互", children: "只读详情可通过关闭按钮、Esc 或遮罩关闭；有未保存内容时，关闭前提示确认；提交中显示加载状态并防止重复提交，失败时保留内容。" },
+        ]} />
+      </Card>
+
+      <Modal
+        title="配方详情"
+        open={detailModalOpen}
+        width={720}
+        onCancel={() => setDetailModalOpen(false)}
+        styles={{ body: { maxHeight: "60vh", overflowY: "auto" } }}
+        footer={<Button type="primary" onClick={() => setDetailModalOpen(false)}>关闭</Button>}
+      >
+        <Descriptions bordered size="small" column={{ xs: 1, sm: 2 }} items={[
+          { key: "formula", label: "配方号", children: "C261109001" },
+          { key: "status", label: "状态", children: <Tag color="blue">进行中</Tag> },
+          { key: "card", label: "流程卡号", children: "Y261109001" },
+          { key: "order", label: "订字", children: "BS7H-35" },
+          { key: "color", label: "色号", children: "测试826" },
+          { key: "team", label: "班组", children: "甲班" },
+          { key: "owner", label: "负责人", children: "水木" },
+          { key: "remark", label: "备注", children: "—" },
+        ]} />
+      </Modal>
 
       <Modal
         title="确认操作"

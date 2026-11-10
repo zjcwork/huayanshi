@@ -1,6 +1,6 @@
 import {ensureFormulaChangeDemo} from './formula-change-demo';
-import {useEffect,useState} from 'react';
-import {App,Button,DatePicker,Descriptions,Empty,Input,Modal,Popover,Select,Space,Table,Tabs,Tag,Tooltip} from 'antd';
+import {useEffect,useRef,useState} from 'react';
+import {Alert,App,Button,DatePicker,Descriptions,Empty,Input,Modal,Popover,Select,Space,Table,Tabs,Tag,Tooltip} from 'antd';
 import {ColumnHeightOutlined,FullscreenOutlined,InfoCircleOutlined,ReloadOutlined,SettingOutlined} from '@ant-design/icons';
 import dayjs from 'dayjs';
 import {dyeReviewCards} from './dye-review-cards';
@@ -9,6 +9,11 @@ import './formula-change-review.css';
 import {loadFormulaState,requestFormulaRetry,reviewFormula,saveFormulaState,updateReviewFormula,type Change,type Formula} from './dye-formula-model';
 import {formulaChangeDefaultDates,formulaRetryProgress,type FormulaRetryProgress} from './formula-change-filters';
 import DyeFormulaTable from './DyeFormulaTable';
+import FormulaBasicInfo from './FormulaBasicInfo';
+import FormulaChangeComparison from './FormulaChangeComparison';
+import {findFormulaChangeCard} from './formula-change-card';
+import {queryRecords} from './data';
+import './formula-change-detail.css';
 
 const hiddenChangeReasons=new Set(['色光偏红，红染料用量降低10%','对样颜色偏浅，艳蓝用量提高8%']);
 type WorkflowStatus='待变更'|'已变更'|'待确认'|'已确认';
@@ -39,7 +44,7 @@ function workflowStatus(change:Change):WorkflowStatus{
 }
 
 export default function FormulaChangeReview(){
- const {message}=App.useApp();
+ const {message,modal}=App.useApp();
  const [defaultDates]=useState(()=>formulaChangeDefaultDates());
  const [state,setState]=useState(()=>loadFormulaState());
  const [orderQuery,setOrderQuery]=useState('');
@@ -58,21 +63,39 @@ export default function FormulaChangeReview(){
  const [retryOpen,setRetryOpen]=useState(false);
  const [retryDraft,setRetryDraft]=useState<Formula|null>(null);
  const [retryReason,setRetryReason]=useState('');
+ const editOrigin=useRef<{draft:Formula|null;mode:'original'|'requested'|'custom'|null}>({draft:null,mode:null});
+ const detailTop=useRef<HTMLElement>(null);
+ useEffect(()=>{if(detailOpen)detailTop.current?.closest<HTMLElement>('.ant-modal-body')?.scrollTo({top:0});},[detailOpen,selected?.id]);
  useEffect(()=>{setState(ensureFormulaChangeDemo())},[]);
  const eligibleChanges=state.changes.filter(change=>(change.category??'change')==='change'&&!hiddenChangeReasons.has(change.reason));
  const statusCounts=Object.fromEntries(workflowStatuses.map(status=>[status,eligibleChanges.filter(change=>workflowStatus(change)===status).length])) as Record<WorkflowStatus,number>;
  const rows=eligibleChanges.filter(change=>change.order.toLowerCase().includes(applied.order)&&(change.colorNo??'').toLowerCase().includes(applied.color)&&change.card.toLowerCase().includes(applied.card)&&workflowStatus(change)===filterStatus&&(!startDate||!dayjs(change.submittedAt).isBefore(startDate.startOf('day')))&&(!endDate||!dayjs(change.submittedAt).isAfter(endDate.endOf('day')))).slice(0,10);
- const selectedInfo=selected?dyeReviewCards.find(item=>item.card===selected.card||item.order===selected.order):undefined;
+ const selectedInfo=findFormulaChangeCard(selected,dyeReviewCards);
  const displayedConfirmation=selected?(draft??(selected.status==='已通过'?(selected.formulaChoice==='original'?selected.before:selected.reviewedFormula??selected.after):null)):null;
- const startEditing=()=>{if(!selected)return;setDraft(structuredClone(selected.reviewedFormula??selected.after));setConfirmationMode('custom');setEditing(true)};
+ const startEditing=()=>{if(!selected)return;editOrigin.current={draft:structuredClone(draft),mode:confirmationMode};setDraft(structuredClone(displayedConfirmation??selected.reviewedFormula??selected.after));setConfirmationMode('custom');setEditing(true)};
+ const cancelEditing=()=>{setDraft(editOrigin.current.draft);setConfirmationMode(editOrigin.current.mode);setEditing(false)};
  const saveEditedFormula=()=>{if(!selected||!draft)return;try{const next=updateReviewFormula(loadFormulaState(),selected.id,draft);saveFormulaState(next);setState(next);setSelected(next.changes.find(change=>change.id===selected.id)??selected);setDraft(structuredClone(draft));setEditing(false);message.success('编辑配方已保存，请确认配方')}catch(error){message.error((error as Error).message)}};
  const search=()=>{setApplied({order:orderQuery.trim().toLowerCase(),color:colorQuery.trim().toLowerCase(),card:cardQuery.trim().toLowerCase()});setState(loadFormulaState())};
  const selectChange=(change:Change,open=true)=>{setSelected(change);setEditing(false);setConfirmationMode(null);setDraft(null);if(open)setDetailOpen(true)};
  const useFormula=(mode:'original'|'requested')=>{if(!selected)return;setDraft(structuredClone(mode==='original'?selected.before:selected.after));setConfirmationMode(mode);setEditing(false)};
- const confirmReview=()=>{if(!selected||!confirmationMode||!draft)return;try{let current=loadFormulaState();if(confirmationMode==='custom')current=updateReviewFormula(current,selected.id,draft);const choice=confirmationMode==='original'?'original':'requested';const next=reviewFormula(current,selected.id,true,'水木',confirmationMode==='original'?'使用原比例':confirmationMode==='requested'?'使用申请比例':'编辑确认比例',choice);saveFormulaState(next);setState(next);setSelected(null);setDetailOpen(false);setEditing(false);setDraft(null);setConfirmationMode(null);message.success('配方变更已确认');}catch(error){message.error((error as Error).message)}};
- const openRetry=()=>{if(!selected)return;setRetryDraft(structuredClone(selected.reviewedFormula??selected.after));setRetryReason(changeReason(selected.reason));setRetryOpen(true)};
+ const confirmReview=()=>{if(!selected||!confirmationMode||!draft)return;try{let current=loadFormulaState();if(confirmationMode!=='original')current=updateReviewFormula(current,selected.id,draft);const choice=confirmationMode==='original'?'original':'requested';const next=reviewFormula(current,selected.id,true,'水木',confirmationMode==='original'?'使用原配方':confirmationMode==='requested'?'使用申请配方':'编辑确认配方',choice);saveFormulaState(next);setState(next);setSelected(null);setDetailOpen(false);setEditing(false);setDraft(null);setConfirmationMode(null);message.success('配方变更已确认');}catch(error){message.error((error as Error).message)}};
+ const openRetry=()=>{if(!selected)return;setRetryDraft(structuredClone(draft??selected.reviewedFormula??selected.after));setRetryReason(changeReason(selected.reason));setRetryOpen(true)};
  const closeRetry=()=>{setRetryOpen(false);setRetryDraft(null);setRetryReason('')};
- const requestRetry=()=>{if(!selected||!retryDraft)return;if(!retryReason.trim()){message.warning('请填写复样原因');return;}try{let current=updateReviewFormula(loadFormulaState(),selected.id,retryDraft);current=requestFormulaRetry(current,selected.id,'水木',retryReason);saveFormulaState(current);setState(current);const updated=current.changes.find(change=>change.id===selected.id)??null;setSelected(updated);closeRetry();message.success('已按调整后的配方发起复样，请到打样页面处理');}catch(error){message.error((error as Error).message)}};
+ const requestRetry=()=>{if(!selected||!retryDraft)return;if(!retryReason.trim()){message.warning('请填写复样原因');return;}try{let current=updateReviewFormula(loadFormulaState(),selected.id,retryDraft);current=requestFormulaRetry(current,selected.id,'水木',retryReason);saveFormulaState(current);setState(current);const updated=current.changes.find(change=>change.id===selected.id)??null;setSelected(updated);setDraft(null);setConfirmationMode(null);closeRetry();message.success('已按调整后的配方发起复样，请到打样页面处理');}catch(error){message.error((error as Error).message)}};
+ const closeDetail=()=>{
+  const close=()=>{setDetailOpen(false);setEditing(false);setConfirmationMode(null);setDraft(null);closeRetry()};
+  if(editing){modal.confirm({title:'放弃尚未保存的配方修改？',content:'关闭后，本次编辑将不会保存。',okText:'放弃修改',cancelText:'继续编辑',onOk:close});return;}
+  close();
+ };
+ const orderInfo=selected?(queryRecords.find(row=>row.processCard===selected.card)??queryRecords.find(row=>row.order===selected.order&&row.colorNo===(selected.colorNo||selectedInfo?.colorNo))):undefined;
+ const selectedRecord=selected?{
+  ...orderInfo,order:selected.order,colorNo:selected.colorNo||selectedInfo?.colorNo,
+  product:selectedInfo?.product||orderInfo?.product,color:selectedInfo?.color||orderInfo?.color,depth:selectedInfo?.depth||orderInfo?.depth,
+  ratio:selected.before.bath??selectedInfo?.bath,greigeWidth:orderInfo?.greigeWidth||(selected.source==='demo'?'150cm':undefined),
+  greigeWeight:orderInfo?.greigeWeight||(selected.source==='demo'?'200g':undefined),
+  processingRequirements:orderInfo?.processingRequirements||(selected.source==='demo'?'成品手感：滑爽 | 成品光暗：一般 | 布面起皱风格：否 | 布面光洁：否 | 高牢度：否 | 预缩要求：否':undefined)
+ }:null;
+ const retryPending=!!selected?.retry&&!selected.retry.completedAt;
  const resetFilters=()=>{const dates=formulaChangeDefaultDates();setOrderQuery('');setColorQuery('');setCardQuery('');setApplied({order:'',color:'',card:''});setStartDate(dates.start);setEndDate(dates.end);setFilterStatus('待确认');setSelectedKeys([]);setState(loadFormulaState())};
  return <section className="panel formula-change-table-page">
   <div className="formula-change-table-filters"><label><span>订字：</span><Input aria-label="变更订字" placeholder="请输入订字" value={orderQuery} onChange={event=>setOrderQuery(event.target.value)} onPressEnter={search}/></label><label><span>色号：</span><Input aria-label="变更色号" placeholder="请输入色号" value={colorQuery} onChange={event=>setColorQuery(event.target.value)} onPressEnter={search}/></label><label><span>流程卡号：</span><Input aria-label="变更流程卡号" placeholder="请输入流程卡号" value={cardQuery} onChange={event=>setCardQuery(event.target.value)} onPressEnter={search}/></label><label className="formula-change-date"><span>创建时间：</span><DatePicker.RangePicker aria-label="变更创建时间" value={[startDate,endDate]} onChange={value=>{setStartDate(value?.[0]??null);setEndDate(value?.[1]??null)}} format="YYYY-MM-DD"/></label><label><span>变更状态：</span><Select aria-label="变更状态" value={filterStatus} onChange={value=>setFilterStatus(value as WorkflowStatus)} options={changeStatusOptions}/></label><span className="formula-change-filter-spacer"/><Button type="primary" onClick={search}>查询</Button><Button onClick={resetFilters}>重置</Button></div>
@@ -91,12 +114,32 @@ export default function FormulaChangeReview(){
    {title:<Space size={2}>复样进度<Tooltip title="此处显示复样进度：待分配、进行中、已完成。"><Button type="text" size="small" aria-label="查看复样进度说明" icon={<InfoCircleOutlined/>}/></Tooltip></Space>,width:120,align:'center',render:(_,change)=>{const progress=formulaRetryProgress(change);return <Tag color={retryProgressColors[progress]}>{progress}</Tag>}},
    {title:'操作',fixed:'right',width:90,align:'center',render:(_,change)=><Button type="link" onClick={()=>selectChange(change)}>{change.status==='待工段长审核'?'去处理':'查看'}</Button>},
   ]}/>
-  <Modal className="formula-change-detail-modal" title={selected?<span>{selected.order}　{selected.colorNo||selectedInfo?.colorNo||'—'}</span>:undefined} width="calc(100vw - 40px)" style={{top:12}} open={detailOpen&&!!selected} onCancel={()=>{setDetailOpen(false);setEditing(false);setConfirmationMode(null);setDraft(null);closeRetry()}} footer={selected&&(selected.status!=='待工段长审核'?<Button onClick={()=>setDetailOpen(false)}>关闭</Button>:<div className="formula-change-detail-footer"><span>{confirmationMode==='original'?'将使用原比例':confirmationMode==='requested'?'将使用申请比例':confirmationMode==='custom'?'将使用编辑后的确认比例':''}</span><Space><Button disabled={!!selected.retry&&!selected.retry.completedAt} onClick={openRetry}>{selected.retry&&!selected.retry.completedAt?'复样进行中':'发起复样'}</Button><Button onClick={()=>{setDetailOpen(false);setEditing(false);setConfirmationMode(null);setDraft(null);closeRetry()}}>取消</Button><Button type="primary" disabled={!confirmationMode||!draft||editing} onClick={confirmReview}>确认配方</Button></Space></div>)}>
-   {selected&&<><div className="formula-change-card-summary"><h3 className="formula-change-modal-section formula-change-card-summary-title">流程卡详情</h3><Descriptions bordered size="small" column={3} items={[
-    {key:'base',label:'基础信息',children:`${selected.card} | ${selected.order} | ${selectedInfo?.product||'短纤与棉'}`},{key:'colorSummary',label:'颜色信息',children:`${selected.colorNo||selectedInfo?.colorNo||'—'} | ${selectedInfo?.color||'—'} | ${selectedInfo?.depth||'—'}`},{key:'greige',label:'白坯信息',children:'门幅150cm | 克重200g'},
-    {key:'badSummary',label:'不良信息',children:'— | — | —'},{key:'metersSummary',label:'米数信息',children:'预配1匹 | 实配1匹 | 实配100米'},{key:'finishedSummary',label:'成品要求',children:'门幅无要求 | 克重无要求'},
-    {key:'processingSummary',label:'加工要求',children:'成品手感：滑爽 | 成品光暗：一般 | 布面起皱风格：否 | 布面光洁：否 | 高牢度：否 | 预缩要求：否',span:2},{key:'openingSummary',label:'开卡信息',children:`${selected.applicant?.trim()||'未记录'} | ${new Date(selected.submittedAt).toLocaleString()}`},
-   ]}/></div><h3 className="formula-change-modal-section formula-change-formula-title">配方详情 <span className="formula-change-request-meta"><span><b>变更人：</b>{selected.applicant?.trim()||'未记录'}</span><span><b>变更时间：</b>{new Date(selected.submittedAt).toLocaleString()}</span><span><b>变更原因：</b>{changeReason(selected.reason)||'未记录'}</span></span></h3><div className="formula-change-pair-grid"><section><h3>变更前配方</h3><DyeFormulaTable compact fitWidth ratioTitle="大货比例" formula={selected.before}/></section><section><h3>申请配方</h3><DyeFormulaTable compact fitWidth ratioTitle="申请比例" original={selected.before} formula={selected.after}/></section><section><div className="formula-change-pair-heading"><h3>确认配方</h3>{selected.status==='待工段长审核'&&<Space size={6} wrap><Button size="small" type={confirmationMode==='original'?'primary':'default'} onClick={()=>useFormula('original')}>使用原比例</Button><Button size="small" type={confirmationMode==='requested'?'primary':'default'} onClick={()=>useFormula('requested')}>使用申请比例</Button><Button size="small" type={confirmationMode==='custom'?'primary':'default'} onClick={startEditing}>编辑配方</Button>{editing&&<Button size="small" type="primary" onClick={saveEditedFormula}>保存</Button>}</Space>}</div><DyeFormulaTable compact fitWidth={!editing} ratioTitle="确认比例" original={selected.after} formula={displayedConfirmation??{...selected.after,rows:selected.after.rows.map(row=>({...row,ratio:null}))}} editing={editing} onChange={setDraft}/></section></div></>}
+  <Modal className="formula-change-detail-modal" title={selected?<div className="change-detail-title"><span>配方变更</span><strong>{selected.order}</strong><span>色号：{selected.colorNo||selectedInfo?.colorNo||'—'}</span><Tag color={selected.status==='已通过'?'green':selected.status==='已退回'?'orange':'blue'}>{workflowStatus(selected)}</Tag></div>:undefined} width="min(1480px, calc(100vw - 48px))" style={{top:24}} open={detailOpen&&!!selected} afterOpenChange={open=>{if(open)detailTop.current?.closest<HTMLElement>('.ant-modal-body')?.scrollTo({top:0});}} onCancel={closeDetail} maskClosable={false} footer={selected&&(selected.status!=='待工段长审核'?<Button onClick={closeDetail}>关闭</Button>:<div className="formula-change-detail-footer"><span>{confirmationMode==='original'?'将使用原配方':confirmationMode==='requested'?'将使用申请配方':confirmationMode==='custom'?'将使用编辑后的确认配方':'请选择确认方案'}</span><Space><Button disabled={editing||retryPending} onClick={openRetry}>{retryPending?'复样进行中':'发起复样'}</Button><Button onClick={closeDetail}>取消</Button><Tooltip title={retryPending&&confirmationMode!=='original'?'请先完成复样，再确认申请或编辑后的配方':undefined}><Button type="primary" disabled={!confirmationMode||!draft||editing||(retryPending&&confirmationMode!=='original')} onClick={confirmReview}>确认配方</Button></Tooltip></Space></div>)}>
+   {selected&&selectedRecord&&<>
+    <section className="change-detail-card" ref={detailTop}>
+     <div className="change-detail-card-heading"><h3>流程卡 <span>{selected.card}</span></h3></div>
+     <FormulaBasicInfo record={selectedRecord}/>
+     <dl className="change-detail-extra">
+      <div><dt>计划米匹数</dt><dd>{selectedInfo?`${selectedInfo.pieces} 匹 / ${selectedInfo.meters} 米`:'未记录'}</dd></div>
+      <div><dt>实配米匹数</dt><dd>{selected.source==='demo'?'1 匹 / 100 米':'未记录'}</dd></div>
+      <div><dt>成品门幅 / 克重要求</dt><dd>{selected.source==='demo'?'门幅无要求 / 克重无要求':'未记录'}</dd></div>
+      <div><dt>开卡信息</dt><dd>未记录</dd></div>
+      <div><dt>不良信息</dt><dd>—</dd></div>
+     </dl>
+    </section>
+    <section className="change-detail-application">
+     <Descriptions size="small" column={{xs:1,sm:2,lg:3}} items={[
+      {key:'applicant',label:'申请人',children:selected.applicant?.trim()||'未记录'},
+      {key:'time',label:'申请时间',children:dayjs(selected.submittedAt).format('YYYY-MM-DD HH:mm')},
+      {key:'type',label:'变更类型',children:<Space size={[4,4]} wrap>{changeTypes(selected).map(type=><Tag key={type} color="orange">{type}</Tag>)}</Space>},
+      {key:'reason',label:'变更原因',children:changeReason(selected.reason)||'未记录',span:'filled'}
+     ]}/>
+     {selected.status==='已退回'&&<Alert type="warning" showIcon message={`退回原因：${selected.reviewReason||'未记录'}`} description={`${selected.reviewer||'未记录处理人'} · ${selected.reviewedAt?dayjs(selected.reviewedAt).format('YYYY-MM-DD HH:mm'):'未记录处理时间'}`}/>}
+     {selected.status==='已通过'&&<div className="change-detail-confirmed"><span>确认人：{selected.reviewer||'未记录'}</span><span>确认时间：{selected.reviewedAt?dayjs(selected.reviewedAt).format('YYYY-MM-DD HH:mm'):'未记录'}</span><span>处理说明：{selected.reviewReason||'未记录'}</span></div>}
+    </section>
+    <div className="change-detail-comparison-heading"><h3>配方对比</h3>{selected.status==='待工段长审核'&&<Space size={6} wrap>{editing?<><Button size="small" onClick={cancelEditing}>取消编辑</Button><Button size="small" type="primary" onClick={saveEditedFormula}>保存编辑</Button></>:<><Button size="small" type={confirmationMode==='original'?'primary':'default'} onClick={()=>useFormula('original')}>使用原配方</Button><Button size="small" type={confirmationMode==='requested'?'primary':'default'} onClick={()=>useFormula('requested')}>使用申请配方</Button><Button size="small" type={confirmationMode==='custom'?'primary':'default'} onClick={startEditing}>编辑确认配方</Button></>}</Space>}</div>
+    <FormulaChangeComparison key={selected.id} before={selected.before} requested={selected.after} confirmed={displayedConfirmation} editing={editing} onChange={setDraft}/>
+   </>}
   </Modal>
   <Modal className="formula-retry-modal" title="调整配方后发起复样" width="min(1100px, calc(100vw - 48px))" open={retryOpen&&!!selected&&!!retryDraft} onCancel={closeRetry} onOk={requestRetry} okText="确认并发起复样" cancelText="取消" destroyOnHidden>
    {selected&&retryDraft&&<><div className="formula-retry-summary"><span>流程卡：<b>{selected.card}</b></span><span>订字：<b>{selected.order}</b></span><span>色号：<b>{selected.colorNo||selectedInfo?.colorNo||'—'}</b></span></div><h3 className="formula-change-modal-section">调整复样配方</h3><DyeFormulaTable formula={retryDraft} original={selected.after} editing compact fitWidth showBath onChange={setRetryDraft}/><label className="formula-retry-reason"><span>复样原因</span><Input.TextArea aria-label="复样原因" rows={3} value={retryReason} onChange={event=>setRetryReason(event.target.value)} placeholder="请填写本次复样原因"/></label></>}
